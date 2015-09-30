@@ -1,0 +1,6 @@
+# .class files
+/out/
+
+# IntelliJ stuff
+/.idea/
+*.iml
