@@ -1,5 +1,6 @@
 # .class files
 /out/
+*.class
 
 # IntelliJ stuff
 /.idea/
