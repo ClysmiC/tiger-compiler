@@ -41,3 +41,43 @@ Step 1: remove order-of-operation ambiguity
 Step 2: modify grammar to support LL(1) parsing (remove left-recursion
 and do left-factoring).
 
+REMOVING LEFT-RECURSION
+
+<expr> -> 	<term1> <exprPrime>
+
+<exprPrime> -> 	| <term1> <exprPrime>
+				empty
+
+<term1> ->	<term2> <term1Prime>
+
+<term1Prime> ->	& <term2> <term1Prime>
+				empty
+
+
+<term2> -> 	<term3> <term2Prime>
+
+<term2Prime> -> <inequality-op> <term2Prime>
+				empty
+
+<term3> -> 	<term4> <term3Prime>
+
+<term3Prime> -> <equality-op> <term3Prime>
+				empty
+
+<term4> -> 	<term5> <term4Prime>
+
+<term4Prime> -> <add-sub-op> <term4Prime>
+				empty
+
+<term5> -> <factor> <term5Prime>
+
+<term5Prime -> <mul-div-op> <term5Prime>
+
+<factor> -> (<expr>)
+			id
+			<const>
+			<lvalue>
+
+LEFT-FACTORING
+
+
