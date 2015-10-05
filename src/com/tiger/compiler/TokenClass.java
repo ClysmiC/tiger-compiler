@@ -4,7 +4,7 @@ public enum TokenClass
 {
     START, COMMA, COLON, SEMI, LPAREN, RPAREN, LBRACK, RBRACK, LBRACE, RBRACE, PERIOD,
     PLUS, MINUS, MULT, DIV, EQ, NEQ, LESSER, GREATER, LESSEREQ, GREATEREQ, AND, OR, ASSIGN,
-    ARRAY, BREAK, DO, ELSE, FOR, FUNC, IF, IN, LET, NIL, OF, THEN, TO, TYPE, VAR, WHILE, ENDIF, BEGIN, END, ENDDO,
+    ARRAY, BREAK, DO, ELSE, FOR, FUNCTION, IF, IN, LET, OF, THEN, TO, TYPE, VAR, WHILE, ENDIF, BEGIN, END, ENDDO,
     ID, INTLIT, FLOATLIT, WHITESPACE, ERROR, BLOCKCOMMENT, ILLEGAL, EOF;
     
 
@@ -75,65 +75,62 @@ public enum TokenClass
 
             case 19:
                 /* this is ID */
-                switch(str.toUpperCase()) {
-                    case "ARRAY":
+                switch(str) {
+                    case "array":
                         return ARRAY;
 
-                    case "BREAK":
+                    case "break":
                         return BREAK;
 
-                    case "DO":
+                    case "do":
                         return DO;
 
-                    case "ELSE":
+                    case "else":
                         return ELSE;
 
-                    case "END":
+                    case "end":
                         return END;
 
-                    case "FOR":
+                    case "for":
                         return FOR;
 
-                    case "FUNC":
-                        return FUNC;
+                    case "function":
+                        return FUNCTION;
 
-                    case "IF":
+                    case "if":
                         return IF;
 
-                    case "IN":
+                    case "in":
                         return IN;
 
-                    case "LET":
+                    case "let":
                         return LET;
 
-                    case "NIL":
-                        return NIL;
-
-                    case "OF":
+                    case "of":
                         return OF;
 
-                    case "THEN":
+                    case "then":
                         return THEN;
 
-                    case "TO":
+                    case "to":
                         return TO;
 
-                    case "TYPE":
+                    case "type":
                         return TYPE;
 
-                    case "VAR":
+                    case "var":
                         return VAR;
 
-                    case "WHILE":
+                    case "while":
                         return WHILE;
 
-                    case "ENDIF":
+                    case "endif":
                         return ENDIF;
 
-                    case "BEGIN":
+                    case "begin":
                         return BEGIN;
 
-                    case "ENDDO":
+                    case "enddo":
                         return ENDDO;
 
                     default:
