@@ -77,7 +77,6 @@ public class TScanner
 		
 		sb.deleteCharAt(sb.length() - 1);
 		String tokenString = sb.toString();
-		System.out.println("\"" + tokenString + "\"");
 		
 		TokenClass tokenClass = TokenClass.classOf(lastState, tokenString);
 
