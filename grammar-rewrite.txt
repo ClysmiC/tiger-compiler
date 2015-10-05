@@ -1,0 +1,39 @@
+Step 1: remove order-of-operation ambiguity
+
+<expr> -> 	<expr> <logic-op> <term>
+			<term>
+
+<term> ->	<term> <equality-op> <term2>
+			<term2>
+
+<term2> -> 	<term2> <add-sub-op> <term3>
+			<term3>
+
+<term3> ->	<term3> <mul-div-op> <term4>
+			<factor>
+
+<factor> -> (<expr>)
+			id
+			<const>
+			<lvalue>
+
+<logic-op> -> 	&
+				|
+
+<equality-op> -> 	=
+					<>
+					>=
+					<=
+					>
+					<
+
+<add-sub-op> ->	+
+				-
+
+<mul-div-op> -> *
+				/
+
+
+Step 2: modify grammar to support LL(1) parsing (remove left-recursion
+and do left-factoring).
+
