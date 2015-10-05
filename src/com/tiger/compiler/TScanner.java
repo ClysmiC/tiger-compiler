@@ -51,7 +51,7 @@ public class TScanner
         //after valid token, which needs to detect EOF to know
         //to end the token
         if (charList.get(charNum) == '\0') {
-            return null;
+            return new Tuple<TokenClass, String>(TokenClass.EOF, "EOF");
         }
 
 		do {
@@ -60,7 +60,7 @@ public class TScanner
             //MIGHT happen in an un-closed block comment (since EOF will be considered an OTHER,
             //which is allowed in block comments)
             if(charNum >= charList.size())
-                return null;
+				return new Tuple<TokenClass, String>(TokenClass.EOF, "EOF");
 
 			char character = charList.get(charNum);
 
