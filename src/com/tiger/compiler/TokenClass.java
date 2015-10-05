@@ -4,7 +4,7 @@ public enum TokenClass
 {
     START, COMMA, COLON, SEMI, LPAREN, RPAREN, LBRACK, RBRACK, LBRACE, RBRACE, PERIOD,
     PLUS, MINUS, MULT, DIV, EQ, NEQ, LESSER, GREATER, LESSEREQ, GREATEREQ, AND, OR, ASSIGN,
-    ARRAY, BREAK, DO, ELSE, FOR, FUNCTION, IF, IN, LET, OF, THEN, TO, TYPE, VAR, WHILE, ENDIF, BEGIN, END, ENDDO,
+    ARRAY, BREAK, DO, ELSE, FOR, FUNCTION, RETURN, IF, IN, LET, OF, THEN, TO, TYPE, VAR, INT, FLOAT, WHILE, ENDIF, BEGIN, END, ENDDO,
     ID, INTLIT, FLOATLIT, WHITESPACE, ERROR, BLOCKCOMMENT, ILLEGAL, EOF;
     
 
@@ -97,6 +97,9 @@ public enum TokenClass
                     case "function":
                         return FUNCTION;
 
+                    case "return":
+                        return RETURN;
+
                     case "if":
                         return IF;
 
@@ -120,6 +123,12 @@ public enum TokenClass
 
                     case "var":
                         return VAR;
+
+                    case "int":
+                        return INT;
+
+                    case "float":
+                        return FLOAT;
 
                     case "while":
                         return WHILE;
