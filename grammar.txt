@@ -1,0 +1,161 @@
+<tiger-program>         ->  let <declaration-segment> in <stat-seq> end
+
+
+
+
+<declaration-segment>   ->  <type-declaration-list> <var-declaration-list> <func-declaration-list>
+
+<type-declaration-list> ->  <type-declaration> <type-declaration-list>
+                        ->  NULL
+
+<var-declaration-list>  ->  <var-declaration> <var-declaration-list>
+                        ->  NULL
+
+<func-declaration-list> ->  <func-declaration> <func-declaration-list>
+                        ->  NULL
+
+
+
+
+<type-declaration>      ->  type id = <type> ;
+
+<type>                  ->  <type-id>
+                            array [INTLIT] of <type-id>
+                            id
+
+<type-id>               ->  int
+                        ->  float
+
+
+
+
+<var-declaration>       ->  var <id-list> : <type> <optional-init> ;
+
+<id-list>               ->  id <id-list-tail>
+
+<id-list-tail>          ->  , id <id-list-tail>
+                        ->  NULL
+
+<optional-init>         ->  := <const>
+                        ->  NULL
+
+
+
+
+<func-declaration>      ->  function id (<param-list>) <ret-type> begin <stat-seq> end ;
+
+<param-list>            ->  <param> <param-list-tail>
+                        ->  NULL
+
+<param-list-tail>       -> , <param> <param-list-tail>
+                        ->  NULL
+
+<ret-type>              ->  : <type>
+                        ->  NULL
+
+<param>                 ->  id : <type>
+
+
+
+
+<stat-seq>              ->  <stat> <stat-seq-cont>
+
+<stat-seq-cont>         ->  <stat-seq>
+                        ->  NULL
+
+<stat>                  ->  <if-stat> <if-end> ;
+                        ->  id <stat-assign-or-func> ;
+                        ->  while <expr> do <stat-seq> enddo ;
+                        ->  for id := <expr> to <expr> do <stat-seq> enddo;
+                        ->  break ;
+                        ->  return <expr> ;
+
+<stat-assign-or-func>   ->  <lvalue-tail> := <stat-assign-rhs>
+                        ->  <func-call-end>
+
+<stat-assign-rhs>       ->  id <expr-or-func-end>
+                        ->  (<expr>) <exprPrime>
+                        ->  <const> <exprPrime>
+
+<expr-or-func-end>      ->  <lvalue-tail> <exprPrime>
+                        ->  <func-call-end>
+
+<func-call-end>         ->  (<expr-list>)
+
+<if-stat>               ->  if <expr> then <stat-seq>
+
+<if-end>                ->  endif
+                        ->  else <stat-seq> endif
+
+
+
+
+
+<expr>                  ->  <term1> <exprPrime>
+
+<exprPrime>             ->  | <term1> <exprPrime>
+                        ->  NULL
+
+<term1>                 ->  <term2> <term1Prime>
+
+<term1Prime>            ->  & <term2> <term1Prime>
+                        ->  NULL
+
+
+<term2>                 ->  <term3> <term2Prime>
+
+<term2Prime>            ->  <inequality-op> <term2Prime>
+                        ->  NULL
+
+<term3>                 ->  <term4> <term3Prime>
+
+<term3Prime>            ->  <equality-op> <term3Prime>
+                        ->  NULL
+
+<term4>                 ->  <term5> <term4Prime>
+
+<term4Prime>            ->  <add-sub-op> <term4Prime>
+                        ->  NULL
+
+<term5>                 ->  <factor> <term5Prime>
+
+<term5Prime             ->  <mul-div-op> <term5Prime>
+                        ->  NULL
+
+<factor>                ->  (<expr>)
+                        ->  id <lvalue-tail>
+                        ->  <const>
+
+
+
+
+<inequality-op>         ->  <
+                        ->  >
+                        ->  <=
+                        ->  >=
+
+<equality-op>           ->  =
+                        ->  <>
+
+<add-sub-op>            ->  +
+                        ->  -
+
+<mul-div-op>            ->  *
+                        ->  /
+
+
+
+
+<expr-list>             ->  <expr> <expr-list-tail>
+                        ->  NULL
+
+<expr-list-tail>        ->  , <expr> <expr-list-tail>
+                        ->  NULL
+
+
+
+
+<lvalue>                ->  id <lvalue-tail>
+
+<lvalue-tail>           ->  [<expr>]
+                        ->  NULL
