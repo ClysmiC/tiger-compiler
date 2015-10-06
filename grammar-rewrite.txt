@@ -71,7 +71,8 @@ REMOVING LEFT-RECURSION
 
 <term5> -> <factor> <term5Prime>
 
-<term5Prime -> <mul-div-op> <term5Prime>
+<term5Prime ->  <mul-div-op> <term5Prime>
+                NULL
 
 <factor> -> (<expr>)
             id
@@ -96,6 +97,15 @@ LEFT-FACTORING
                     NULL
 
 <stat> -> <if-stat> <if-end> ;
+<stat> -> <assign-or-func>
+
+<assign-or-func> -> <lvalue> := <expr-or-func>
+                    <func-call>;
+
+<expr-or-func> ->   <expr>;
+                    <func-call>;
+
+<func-call> -> id(<expr-list>)
 
 <if-stat> -> if <expr> then <stat-seq>
 
