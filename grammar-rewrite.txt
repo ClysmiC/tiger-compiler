@@ -86,8 +86,8 @@ LEFT-FACTORING
 
 <id-list> -> id <id-list-cont>
 
-<id-list-cont> -> , id <id-list-cont>
-<id-list-cont> -> NULL
+<id-list-cont> ->   , id <id-list-cont>
+                    NULL
 
 
 
@@ -96,8 +96,8 @@ LEFT-FACTORING
 <stat-seq-cont> ->  <stat-seq>
                     NULL
 
-<stat> -> <if-stat> <if-end> ;
-<stat> -> <assign-or-func>
+<stat> ->   <if-stat> <if-end> ;
+            <assign-or-func>
 
 <assign-or-func> -> <lvalue> := <expr-or-func>
                     <func-call>;
