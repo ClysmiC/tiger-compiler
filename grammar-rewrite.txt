@@ -75,9 +75,8 @@ REMOVING LEFT-RECURSION
                 NULL
 
 <factor> -> (<expr>)
-            id
+            id <lvalue-tail>
             <const>
-            <lvalue>
 
 
 
@@ -97,15 +96,19 @@ LEFT-FACTORING
                     NULL
 
 <stat> ->   <if-stat> <if-end> ;
-            <assign-or-func>
+            id <stat-assign-or-func> ;
 
-<assign-or-func> -> <lvalue> := <expr-or-func>
-                    <func-call>;
+<stat-assign-or-func> ->    <lvalue-tail> := <stat-assign-end>
+                            <func-call-end>
 
-<expr-or-func> ->   <expr>;
-                    <func-call>;
+<stat-assign-end> ->    id <expr-or-func-end>
+                        (<expr>) <exprPrime>
+                        <const> <exprPrime>
 
-<func-call> -> id(<expr-list>)
+<expr-or-func-end> ->   <lvalue-tail> <exprPrime>
+                        <func-call-end>
+
+<func-call-end> -> (<expr-list>)
 
 <if-stat> -> if <expr> then <stat-seq>
 
