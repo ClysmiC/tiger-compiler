@@ -1,5 +1,6 @@
 package com.tiger.compiler.frontend.scanner;
 
+import com.tiger.compiler.Output;
 import com.tiger.compiler.Tuple;
 import com.tiger.compiler.frontend.Token;
 
@@ -39,7 +40,7 @@ public class TigerScanner
 
 			fileInput.close();
 		} catch(Exception e) {
-			System.err.println("Error: " + e.getMessage());
+			Output.println("File not found error: " + e.getMessage());
 		}
 
         charList.add('\0'); //add null character at end to denote EOF
