@@ -126,12 +126,13 @@
                         ->  id <lvalue-tail>
                         ->  <const>
 
-<primeTerm>             ->  <exprPrime>
-                        ->  <term1Prime>
-                        ->  <term2Prime>
-                        ->  <term3Prime>
-                        ->  <term4Prime>
-                        ->  <term5Prime>
+<primeTerm>             ->  | <term1> <exprPrime>
+                        ->  & <term2> <term1Prime>
+                        ->  <inequality-op> <term3> <term2Prime>
+                        ->  <equality-op> <term4> <term3Prime>
+                        ->  <add-sub-op> <term5> <term4Prime>
+                        ->  <mul-div-op> <factor> <term5Prime>
+                        ->  NULL
 
 <const>                 ->  INTLIT
                         ->  FLOATLIT

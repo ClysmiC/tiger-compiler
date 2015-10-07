@@ -102,6 +102,8 @@ public class DfaTableGenerator
 		}
 
 
+		rowScanner.close();
+		input.close();
 		return dfa;
 	}
 

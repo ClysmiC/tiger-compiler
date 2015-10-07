@@ -1,23 +1,18 @@
 package com.tiger.compiler;
 
-public enum TokenClass
+public enum Token
 {
-    START, COMMA, COLON, SEMI, LPAREN, RPAREN, LBRACK, RBRACK, LBRACE, RBRACE, PERIOD,
+    COMMA, COLON, SEMI, LPAREN, RPAREN, LBRACK, RBRACK, LBRACE, RBRACE, PERIOD,
     PLUS, MINUS, MULT, DIV, EQ, NEQ, LESSER, GREATER, LESSEREQ, GREATEREQ, AND, OR, ASSIGN,
     ARRAY, BREAK, DO, ELSE, FOR, FUNCTION, RETURN, IF, IN, LET, OF, THEN, TO, TYPE, VAR, INT, FLOAT, WHILE, ENDIF, BEGIN, END, ENDDO,
-    ID, INTLIT, FLOATLIT, WHITESPACE, ERROR, BLOCKCOMMENT, ILLEGAL, EOF;
-    
+    ID, INTLIT, FLOATLIT, WHITESPACE, ERROR, BLOCKCOMMENT, NULL, EOF;
 
 
-
-
-    public static TokenClass classOf(DfaState dfaState, String str)
+    public static Token classOf(DfaState dfaState, String str)
     {
         int id = dfaState.id();
 
         switch(id) {
-            case 0:
-                return START;
 
             case 1:
                 return COMMA;
@@ -158,12 +153,6 @@ public enum TokenClass
             case 23:
                 return ASSIGN;
 
-            case 24:
-                return ILLEGAL;
-
-            case 25:
-                return ILLEGAL;
-            /* BLOCKCOMMENT is not in description */
             case 26:
                 return BLOCKCOMMENT;
 
@@ -188,6 +177,5 @@ public enum TokenClass
             default:
                 return ERROR;
         }
-
     }
 }

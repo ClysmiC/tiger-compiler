@@ -1,0 +1,9 @@
+let
+        var a, b : int;
+in
+        a := 1;
+        while(a < 100) do
+               a++;
+        enddo;
+        printi(a);
+end

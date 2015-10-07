@@ -1,0 +1,4 @@
+LET TYPE ID ASSIGN
+Parser error (line 2):  type int_arr :=<--- 
+                        ":=" is not a valid token. Expected "=".
+unsuccessful parse

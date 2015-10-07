@@ -1,0 +1,6 @@
+let
+        var _a : int;
+in
+        a := 1;
+        printi(a);
+end

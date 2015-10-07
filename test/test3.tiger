@@ -1,0 +1,8 @@
+let
+
+        function return_it(n:int) : int begin
+                return(n);
+        end;
+in
+        return_it(5);
+end
