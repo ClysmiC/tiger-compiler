@@ -1,6 +1,5 @@
-package com.tiger.compiler;
+package com.tiger.compiler.frontend.scanner;
 
-import java.net.URL;
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.io.File;
@@ -65,6 +64,7 @@ public class DfaTableGenerator
 		{
 			return null;
 		}
+
 		input.nextLine();
 
 
@@ -102,6 +102,8 @@ public class DfaTableGenerator
 		}
 
 
+		rowScanner.close();
+		input.close();
 		return dfa;
 	}
 

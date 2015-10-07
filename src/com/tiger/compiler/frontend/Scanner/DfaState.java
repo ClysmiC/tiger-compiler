@@ -1,4 +1,4 @@
-package com.tiger.compiler;
+package com.tiger.compiler.frontend.scanner;
 
 import java.util.Map;
 import java.util.Set;

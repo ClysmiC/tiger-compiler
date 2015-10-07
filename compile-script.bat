@@ -1,0 +1,1 @@
+javac src/com/tiger/compiler/*.java src/com/tiger/compiler/frontend/*.java src/com/tiger/compiler/frontend/scanner/*.java src/com/tiger/compiler/frontend/parser/*.java
