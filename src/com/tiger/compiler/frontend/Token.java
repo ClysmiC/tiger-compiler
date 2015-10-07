@@ -1,4 +1,6 @@
-package com.tiger.compiler;
+package com.tiger.compiler.frontend;
+
+import com.tiger.compiler.frontend.scanner.DfaState;
 
 public enum Token
 {

@@ -1,4 +1,7 @@
-package com.tiger.compiler;
+package com.tiger.compiler.frontend.scanner;
+
+import com.tiger.compiler.Tuple;
+import com.tiger.compiler.frontend.Token;
 
 import java.lang.StringBuilder;
 import java.util.ArrayList;

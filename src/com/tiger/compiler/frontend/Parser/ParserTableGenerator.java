@@ -1,4 +1,7 @@
-package com.tiger.compiler;
+package com.tiger.compiler.frontend.parser;
+
+import com.tiger.compiler.Tuple;
+import com.tiger.compiler.frontend.Token;
 
 import java.io.File;
 import java.util.*;

@@ -1,6 +1,5 @@
-package com.tiger.compiler;
+package com.tiger.compiler.frontend.scanner;
 
-import java.net.URL;
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.io.File;

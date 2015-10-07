@@ -1,15 +1,24 @@
-package com.tiger.compiler;
+package com.tiger.compiler.frontend.parser;
+
+import com.tiger.compiler.Tuple;
+import com.tiger.compiler.frontend.scanner.TigerScanner;
+import com.tiger.compiler.frontend.Token;
 
 import java.util.*;
 
 public class TigerParser
 {
+    private TigerScanner tigerScanner;
+    private ParserTable parserTable;
 
-    public static void main(String[] args)
+    public TigerParser(TigerScanner scanner)
     {
-        TigerScanner tigerScanner = new TigerScanner("test/test1.tiger");
-        ParserTable parserTable = ParserTableGenerator.generateParserTable();
+        tigerScanner = scanner;
+        parserTable = ParserTableGenerator.generateParserTable();
+    }
 
+    public void parse()
+    {
         Enum focus;
         Enum lookAhead;
 
@@ -31,22 +40,32 @@ public class TigerParser
             {
                 System.out.println("\n" + token.y + "\n");
             }
-            else {
-                if (focus == Token.EOF && lookAhead == Token.EOF) {
+            else
+            {
+                if (focus == Token.EOF && lookAhead == Token.EOF)
+                {
                     System.out.println("Successful parse");
                     System.exit(0);
-                } else if (focus instanceof Token) {
-                    if (focus == lookAhead) {
+                }
+                else if (focus instanceof Token)
+                {
+                    if (focus == lookAhead)
+                    {
                         stack.pop();
                         lookAhead = tigerScanner.nextToken().x;
-                    } else {
+                    }
+                    else
+                    {
                         System.out.println("\nError looking for symbol at top of stack. Parse failed.\nFocus: " + focus + "\nLookahead: " + lookAhead);
                         System.exit(1);
                     }
-                } else {
+                }
+                else
+                {
                     ParserProduction prod = parserTable.lookup(focus, lookAhead);
 
-                    if (prod == ParserProduction.ERROR) {
+                    if (prod == ParserProduction.ERROR)
+                    {
                         System.out.println("\nError expanding focus. Parse failed.\nFocus: " + focus + "\nLookahead: " + lookAhead);
                         System.exit(1);
                     }
@@ -58,7 +77,8 @@ public class TigerParser
 
                     List<Enum> rhs = prod.getRhs();
 
-                    for (int i = rhs.size() - 1; i >= 0; i--) {
+                    for (int i = rhs.size() - 1; i >= 0; i--)
+                    {
                         if(rhs.get(i) != Token.NULL)
                             stack.push(rhs.get(i));
                     }

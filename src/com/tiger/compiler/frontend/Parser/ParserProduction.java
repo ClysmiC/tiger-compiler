@@ -1,4 +1,4 @@
-package com.tiger.compiler;
+package com.tiger.compiler.frontend.parser;
 
 import java.util.List;
 
