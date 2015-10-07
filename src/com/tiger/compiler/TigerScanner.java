@@ -10,7 +10,7 @@ public class TigerScanner
 	private List<DfaState> dfaTable;
 	private int lineNum;
 	private int charNum;
-	private final String FILENAME = "res/example1.tiger";
+	private final String FILENAME = "test/test1.tiger";
     private FileInputStream inputStream;
 
 	private List<Character> charList;
@@ -28,6 +28,8 @@ public class TigerScanner
 				char c = (char) r;
 				charList.add(c);
 			}
+
+			fileInput.close();
 		} catch(Exception e) {
 			System.err.println("Error: " + e.getMessage());
 		}
