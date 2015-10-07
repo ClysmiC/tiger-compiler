@@ -16,6 +16,8 @@ public class TigerScanner
 	private int charNum;
     private FileInputStream inputStream;
 
+    private boolean errorRaised;
+
 	private String partialPrefix; //keep track of each line as we parse it, to help w/ error message
 
 	private List<Character> charList;
@@ -26,6 +28,7 @@ public class TigerScanner
 		lineNum = 1;
 		charNum = 0;
 		partialPrefix = "";
+        errorRaised = false;
 
 		charList = new ArrayList<Character>();
 
@@ -111,16 +114,25 @@ public class TigerScanner
             return nextToken();
 		if(token == Token.ERROR)
 		{
-			tokenString = "(Scanner error) Line: " + lineNum + "\n" + partialPrefix + charToDelete + "<--- \"" + charToDelete + "\" does not begin a valid token.";
+			Output.println("\n(Scanner error) Line: " + lineNum + "\n" + partialPrefix + charToDelete + "<--- \"" +
+                    charToDelete + "\" does not begin a valid token.\n");
+
+            errorRaised = true;
 
 			//don't reconsume the erroneous token
 			charNum++;
+
+            return nextToken();
 		}
 
 		return new Tuple<Token, String>(token, tokenString);
 	}
 
-	public int getLineNum() {
+    public boolean isErrorRaised() {
+        return errorRaised;
+    }
+
+    public int getLineNum() {
 		return lineNum;
 	}
 

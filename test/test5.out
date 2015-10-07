@@ -1,5 +1,0 @@
-LET VAR ID COMMA ID COLON ID ASSIGN INTLIT SEMI IN IF LPAREN ID EQ ID RPAREN THEN ID ASSIGN ID
-Scanner error (line 5): a := b %<---
-                        "%" does not begin a valid token.
-INTLIT SEMI ENDIF SEMI ID LPAREN ID RPAREN SEMI END
-unsuccessful parse

@@ -1,0 +1,42 @@
+LET
+VAR
+ID
+COMMA
+ID
+COLON
+INT
+SEMI
+IN
+ID
+ASSIGN
+INTLIT
+SEMI
+WHILE
+LPAREN
+ID
+LESSER
+INTLIT
+RPAREN
+DO
+ID
+PLUS
+
+(Parser error) Line: 6
+a +<---
+Unexpected token found: PLUS
+Expected token: ASSIGN
+
+ASSIGN
+ID
+SEMI
+ENDDO
+SEMI
+ID
+LPAREN
+ID
+RPAREN
+SEMI
+END
+EOF
+
+Unsuccessful parse

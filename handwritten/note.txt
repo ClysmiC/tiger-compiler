@@ -1,0 +1,1 @@
+Note: Table form of DFA is located in /res/

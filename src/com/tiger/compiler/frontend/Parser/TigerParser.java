@@ -32,17 +32,7 @@ public class TigerParser
         Tuple<Token, String> token;
 
         token = tigerScanner.nextToken();
-
-        //print token type
-        if(token.x != Token.ERROR)
-        {
-            Output.debugPrintln(token.x.toString());
-        }
-        else
-        {
-            Output.println(token.y); //error message
-            stopParsingAndExit("");
-        }
+        Output.debugPrintln(token.x.toString());
 
         lookAhead = token.x;
 
@@ -50,7 +40,7 @@ public class TigerParser
         {
             if (focus == Token.EOF && lookAhead == Token.EOF)
             {
-                Output.println("\nSuccessful parse");
+                Output.println(!tigerScanner.isErrorRaised() ? "\nSuccessful parse" : "\nUnsuccessful parse");
                 System.exit(0);
             }
             else if (focus instanceof Token)
@@ -61,16 +51,7 @@ public class TigerParser
                     token = tigerScanner.nextToken();
                     lookAhead = token.x;
 
-                    //print token type
-                    if(token.x != Token.ERROR)
-                    {
-                        Output.debugPrintln(token.x.toString());
-                    }
-                    else
-                    {
-                        Output.println("\n" + token.y + "\n"); //error message
-                        stopParsingAndExit("");
-                    }
+                    Output.debugPrintln(token.x.toString());
                 }
                 else
                 {
@@ -78,17 +59,7 @@ public class TigerParser
 
                     String errorString = "(Parser error) Line: " + tigerScanner.getLineNum() + "\n" + tigerScanner.getPartialPrefix() + "<---";
                     errorString += "\nUnexpected token found: " + lookAhead;
-                    errorString += "\nExpected token(s): ";
-
-                    for(Token t: expectedTokens)
-                    {
-                        errorString += t + ", ";
-                    }
-
-                    if(errorString.endsWith(", "))
-                    {
-                        errorString = errorString.substring(0, errorString.length() - 2);
-                    }
+                    errorString += "\nExpected token: " + focus;
 
                     stopParsingAndExit(errorString);
                 }
@@ -99,21 +70,25 @@ public class TigerParser
 
                 if (prod == ParserProduction.ERROR)
                 {
-                    List<Token> expectedTokens = parserTable.getExpectedTokens((NonterminalSymbol)focus);
+                    List<Token> expectedTokens = parserTable.getExpectedTokens(focus);
 
                     String errorString = "(Parser error) Line: " + tigerScanner.getLineNum() + "\n" + tigerScanner.getPartialPrefix() + "<---";
                     errorString += "\nUnexpected token found: " + lookAhead;
-                    errorString += "\nExpected token(s): ";
 
-                    for(Token t: expectedTokens)
-                    {
-                        errorString += t + ", ";
-                    }
-
-                    if(errorString.endsWith(", "))
-                    {
-                        errorString = errorString.substring(0, errorString.length() - 2);
-                    }
+                    /**
+                     * This way of getting expected tokens isn't working... look into
+                     */
+//                    errorString += "\nExpected token(s): ";
+//
+//                    for(Token t: expectedTokens)
+//                    {
+//                        errorString += t + ", ";
+//                    }
+//
+//                    if(errorString.endsWith(", "))
+//                    {
+//                        errorString = errorString.substring(0, errorString.length() - 2);
+//                    }
 
                     stopParsingAndExit(errorString);
                 }
@@ -161,7 +136,7 @@ public class TigerParser
                 break;
         }
 
-        Output.println("\nUnsuccessful parse.");
+        Output.println("\nUnsuccessful parse");
 
         System.exit(1);
     }

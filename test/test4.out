@@ -1,5 +1,0 @@
-LET VAR
-Scanner error (line 2): let _<---
-                        "_" does not begin a valid token.
-COLON ID SEMI IN ID ASSIGN INTLIT SEMI ID LPAREN ID RPAREN SEMI END
-unsuccessful parse

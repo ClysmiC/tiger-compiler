@@ -1,0 +1,24 @@
+LET
+VAR
+
+(Scanner error) Line: 2
+var _<--- "_" does not begin a valid token.
+
+ID
+COLON
+INT
+SEMI
+IN
+ID
+ASSIGN
+INTLIT
+SEMI
+ID
+LPAREN
+ID
+RPAREN
+SEMI
+END
+EOF
+
+Unsuccessful parse

@@ -1,4 +1,0 @@
-LET VAR ID COMMA ID COLON ID SEMI IN ID ASSIGN INTLIT SEMI WHILE LPAREN ID LESSER INTLIT RPAREN DO ID PLUS
-Parser error (line 6):  a+<---
-                        "+" is not a valid token. Expected assignment.
-unsuccessful parse

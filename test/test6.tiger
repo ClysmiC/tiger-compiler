@@ -3,7 +3,7 @@ let
 in
         a := 1;
         while(a < 100) do
-               a++;
+               a + := b;
         enddo;
         printi(a);
 end
