@@ -103,22 +103,29 @@ public class TigerScanner
 			lineNum--; //"unread" the new line character
 
 		String tokenString = sb.toString();
-		
+
 		Token token = Token.classOf(lastState, tokenString);
 
         //skip over whitespace and block comments and return the next token
         if(token == Token.WHITESPACE || token == Token.BLOCKCOMMENT)
             return nextToken();
-
 		if(token == Token.ERROR)
 		{
-			tokenString = "Error on line: " + lineNum + "\n" + partialPrefix + charToDelete + "<---";
+			tokenString = "Error on line: " + lineNum + "\n" + partialPrefix + charToDelete + "<--- \"" + charToDelete + "\" does not begin a valid token.";
 
 			//don't reconsume the erroneous token
 			charNum++;
 		}
 
 		return new Tuple<Token, String>(token, tokenString);
+	}
+
+	public int getLineNum() {
+		return lineNum;
+	}
+
+	public String getPartialPrefix() {
+		return partialPrefix;
 	}
 
 }

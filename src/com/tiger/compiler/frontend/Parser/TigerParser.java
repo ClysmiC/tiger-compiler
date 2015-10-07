@@ -72,7 +72,8 @@ public class TigerParser
                 }
                 else
                 {
-                    exitOnFailedParse("Error looking for symbol at top of stack. Parse failed.\nFocus: " + focus + "\nLookahead: " + lookAhead);
+                    stopParsingAndExit("Error on line: " + tigerScanner.getLineNum() + "\n" + tigerScanner.getPartialPrefix() + "<--- Expected: " + focus + "  Found: \"" + token.y + "\"");
+                    //exitOnFailedParse("Error looking for symbol at top of stack. Parse failed.\nFocus: " + focus + "\nLookahead: " + lookAhead);
                 }
             }
             else
@@ -100,6 +101,14 @@ public class TigerParser
 
             focus = stack.peek();
         }
+    }
+
+    private void stopParsingAndExit(String debugMessage) {
+        Output.println("\n" + debugMessage);
+
+        Output.println("\nUnsuccessful parse.");
+
+        System.exit(1);
     }
 
     private void exitOnFailedParse(String debugMessage)
