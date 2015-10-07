@@ -65,6 +65,7 @@ public class DfaTableGenerator
 		{
 			return null;
 		}
+
 		input.nextLine();
 
 

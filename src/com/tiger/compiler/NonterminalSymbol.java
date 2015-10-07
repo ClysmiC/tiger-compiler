@@ -1,9 +1,7 @@
 package com.tiger.compiler;
 
-/**
- * Created by Andrew on 10/6/2015.
- */
-public enum NonterminalSymbol {
+public enum NonterminalSymbol
+{
     ERROR,
     TIGER_PROGRAM,
     DECLARATION_SEGMENT,

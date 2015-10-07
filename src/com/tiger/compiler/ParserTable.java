@@ -2,10 +2,8 @@ package com.tiger.compiler;
 
 import java.util.Map;
 
-/**
- * Created by Andrew on 10/6/2015.
- */
-public class ParserTable {
+public class ParserTable
+{
     private Map<Tuple<NonterminalSymbol, Token>, ParserProduction> table;
 
     public ParserTable(Map<Tuple<NonterminalSymbol, Token>, ParserProduction> table)
@@ -13,9 +11,14 @@ public class ParserTable {
         this.table = table;
     }
 
-    public ParserProduction lookup(NonterminalSymbol symbol1, Token symbol2)
+    public ParserProduction lookup(Enum symbol1, Enum symbol2)
     {
-        Tuple key = new Tuple(symbol1, symbol2);
-        return table.get(key);
+        Tuple key = new Tuple((NonterminalSymbol)symbol1, (Token)symbol2);
+        ParserProduction value = table.get(key);
+
+        if(value == null)
+            return ParserProduction.ERROR;
+
+        return value;
     }
 }

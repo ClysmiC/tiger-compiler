@@ -10,14 +10,14 @@ public class TigerScanner
 	private List<DfaState> dfaTable;
 	private int lineNum;
 	private int charNum;
-	private final String FILENAME = "test/test5.tiger";
     private FileInputStream inputStream;
 
 	private String partialPrefix; //keep track of each line as we parse it, to help w/ error message
 
 	private List<Character> charList;
 	
-	public TigerScanner() {
+	public TigerScanner(String filename)
+    {
 		dfaTable = DfaTableGenerator.generateDfa();
 		lineNum = 1;
 		charNum = 0;
@@ -27,7 +27,7 @@ public class TigerScanner
 
 
 		try {
-			FileInputStream fileInput = new FileInputStream(FILENAME);
+			FileInputStream fileInput = new FileInputStream(filename);
 			int r;
 			while ((r = fileInput.read()) != -1) {
 				char c = (char) r;
