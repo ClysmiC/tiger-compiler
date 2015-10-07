@@ -13,6 +13,7 @@ public class TigerCompiler
         if(args.length == 0)
         {
             System.out.println("Usage: java TigerCompiler <input-file>");
+            System.exit(0);
         }
 
         TigerScanner scanner = new TigerScanner(args[0]);

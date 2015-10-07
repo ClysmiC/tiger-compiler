@@ -22,7 +22,7 @@ public class TigerParser
         Enum focus;
         Enum lookAhead;
 
-        Stack<Enum> stack = new Stack();
+        Stack<Enum> stack = new Stack<>();
         stack.add(Token.EOF);
         stack.add(NonterminalSymbol.TIGER_PROGRAM);
 
