@@ -10,16 +10,21 @@ public class TigerScanner
 	private List<DfaState> dfaTable;
 	private int lineNum;
 	private int charNum;
-	private final String FILENAME = "test/test1.tiger";
+	private final String FILENAME = "test/test5.tiger";
     private FileInputStream inputStream;
+
+	private String partialPrefix; //keep track of each line as we parse it, to help w/ error message
 
 	private List<Character> charList;
 	
 	public TigerScanner() {
 		dfaTable = DfaTableGenerator.generateDfa();
-		lineNum = 0;
+		lineNum = 1;
 		charNum = 0;
+		partialPrefix = "";
+
 		charList = new ArrayList<Character>();
+
 
 		try {
 			FileInputStream fileInput = new FileInputStream(FILENAME);
@@ -52,6 +57,7 @@ public class TigerScanner
             return new Tuple<Token, String>(Token.EOF, "EOF");
         }
 
+
 		do {
 
             //should never happen, since we check for EOF
@@ -61,6 +67,16 @@ public class TigerScanner
 				return new Tuple<Token, String>(Token.EOF, "EOF");
 
 			char character = charList.get(charNum);
+
+			if(!partialPrefix.isEmpty() || !Character.isWhitespace(character))
+				partialPrefix += character;
+
+			if(character == '\n')
+			{
+				lineNum++;
+				partialPrefix = "";
+			}
+
 
 			charNum++;
 
@@ -73,7 +89,15 @@ public class TigerScanner
 		} while(!currState.isError());
 		charNum--;
 		
+		char charToDelete = sb.charAt(sb.length() - 1);
 		sb.deleteCharAt(sb.length() - 1);
+
+		if(!partialPrefix.isEmpty())
+			partialPrefix = partialPrefix.substring(0, partialPrefix.length() - 1);
+
+		if(charToDelete == '\n')
+			lineNum--; //"unread" the new line character
+
 		String tokenString = sb.toString();
 		
 		Token token = Token.classOf(lastState, tokenString);
@@ -81,6 +105,14 @@ public class TigerScanner
         //skip over whitespace and block comments and return the next token
         if(token == Token.WHITESPACE || token == Token.BLOCKCOMMENT)
             return nextToken();
+
+		if(token == Token.ERROR)
+		{
+			tokenString = "Error on line: " + lineNum + "\n" + partialPrefix + charToDelete + "<---";
+
+			//don't reconsume the erroneous token
+			charNum++;
+		}
 
 		return new Tuple<Token, String>(token, tokenString);
 	}

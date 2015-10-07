@@ -18,6 +18,11 @@ public class TigerParser {
             token = tigerScanner.nextToken();
             System.out.println(token);
 
+            if(token.x == Token.ERROR)
+            {
+                //TODO: have scanner recover from errors and continue to pass tokens
+            }
+
             if(token.x == Token.EOF)
             {
                 /**
