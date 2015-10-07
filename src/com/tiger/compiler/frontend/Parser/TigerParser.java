@@ -36,11 +36,12 @@ public class TigerParser
         //print token type
         if(token.x != Token.ERROR)
         {
-            Output.println(token.x.toString());
+            Output.debugPrintln(token.x.toString());
         }
         else
         {
             Output.println(token.y); //error message
+            stopParsingAndExit("");
         }
 
         lookAhead = token.x;
@@ -63,17 +64,33 @@ public class TigerParser
                     //print token type
                     if(token.x != Token.ERROR)
                     {
-                        Output.println(token.x.toString());
+                        Output.debugPrintln(token.x.toString());
                     }
                     else
                     {
                         Output.println("\n" + token.y + "\n"); //error message
+                        stopParsingAndExit("");
                     }
                 }
                 else
                 {
-                    stopParsingAndExit("Error on line: " + tigerScanner.getLineNum() + "\n" + tigerScanner.getPartialPrefix() + "<--- Expected: " + focus + "  Found: \"" + token.y + "\"");
-                    //exitOnFailedParse("Error looking for symbol at top of stack. Parse failed.\nFocus: " + focus + "\nLookahead: " + lookAhead);
+                    List<Token> expectedTokens = parserTable.getExpectedTokens(focus);
+
+                    String errorString = "(Parser error) Line: " + tigerScanner.getLineNum() + "\n" + tigerScanner.getPartialPrefix() + "<---";
+                    errorString += "\nUnexpected token found: " + lookAhead;
+                    errorString += "\nExpected token(s): ";
+
+                    for(Token t: expectedTokens)
+                    {
+                        errorString += t + ", ";
+                    }
+
+                    if(errorString.endsWith(", "))
+                    {
+                        errorString = errorString.substring(0, errorString.length() - 2);
+                    }
+
+                    stopParsingAndExit(errorString);
                 }
             }
             else
@@ -82,11 +99,27 @@ public class TigerParser
 
                 if (prod == ParserProduction.ERROR)
                 {
-                    exitOnFailedParse("Error expanding focus. Parse failed.\n" + "Focus: " + focus + "\nLookahead: " + lookAhead);
+                    List<Token> expectedTokens = parserTable.getExpectedTokens((NonterminalSymbol)focus);
+
+                    String errorString = "(Parser error) Line: " + tigerScanner.getLineNum() + "\n" + tigerScanner.getPartialPrefix() + "<---";
+                    errorString += "\nUnexpected token found: " + lookAhead;
+                    errorString += "\nExpected token(s): ";
+
+                    for(Token t: expectedTokens)
+                    {
+                        errorString += t + ", ";
+                    }
+
+                    if(errorString.endsWith(", "))
+                    {
+                        errorString = errorString.substring(0, errorString.length() - 2);
+                    }
+
+                    stopParsingAndExit(errorString);
                 }
 
-                Output.debugPrintln("\nFocus: " + focus + " Lookahead: " + lookAhead);
-                Output.debugPrintln("Expanding focus: " + prod + "\n");
+//                Output.debugPrintln("\nFocus: " + focus + " Lookahead: " + lookAhead);
+//                Output.debugPrintln("Expanding focus: " + prod + "\n");
 
                 stack.pop();
 
@@ -103,26 +136,21 @@ public class TigerParser
         }
     }
 
-    private void stopParsingAndExit(String debugMessage) {
-        Output.println("\n" + debugMessage);
-
-        Output.println("\nUnsuccessful parse.");
-
-        System.exit(1);
-    }
-
-    private void exitOnFailedParse(String debugMessage)
+    private void stopParsingAndExit(String debugMessage)
     {
+        if(!debugMessage.isEmpty())
+            Output.println("\n" + debugMessage + "\n");
 
         //print the rest of the scan. useful for detecting multiple scanner errors
         while(true)
         {
+
             Tuple<Token, String> token = tigerScanner.nextToken();
 
             //print token type
             if(token.x != Token.ERROR)
             {
-                Output.println(token.x.toString());
+                Output.debugPrintln(token.x.toString());
             }
             else
             {
@@ -132,8 +160,6 @@ public class TigerParser
             if(token.x == Token.EOF)
                 break;
         }
-
-        Output.debugPrintln("\n" + debugMessage);
 
         Output.println("\nUnsuccessful parse.");
 

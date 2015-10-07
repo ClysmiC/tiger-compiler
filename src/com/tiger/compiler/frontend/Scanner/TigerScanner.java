@@ -111,7 +111,7 @@ public class TigerScanner
             return nextToken();
 		if(token == Token.ERROR)
 		{
-			tokenString = "Error on line: " + lineNum + "\n" + partialPrefix + charToDelete + "<--- \"" + charToDelete + "\" does not begin a valid token.";
+			tokenString = "(Scanner error) Line: " + lineNum + "\n" + partialPrefix + charToDelete + "<--- \"" + charToDelete + "\" does not begin a valid token.";
 
 			//don't reconsume the erroneous token
 			charNum++;
