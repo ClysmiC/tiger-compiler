@@ -55,8 +55,6 @@ public class TigerParser
                 }
                 else
                 {
-                    List<Token> expectedTokens = parserTable.getExpectedTokens(focus);
-
                     String errorString = "(Parser error) Line: " + tigerScanner.getLineNum() + "\n" + tigerScanner.getPartialPrefix() + "<---";
                     errorString += "\nUnexpected token found: " + lookAhead;
                     errorString += "\nExpected token: " + focus;
@@ -70,7 +68,7 @@ public class TigerParser
 
                 if (prod == ParserProduction.ERROR)
                 {
-                    List<Token> expectedTokens = parserTable.getExpectedTokens(focus);
+//                    List<Token> expectedTokens = parserTable.getExpectedTokens(focus);
 
                     String errorString = "(Parser error) Line: " + tigerScanner.getLineNum() + "\n" + tigerScanner.getPartialPrefix() + "<---";
                     errorString += "\nUnexpected token found: " + lookAhead;
