@@ -7,18 +7,17 @@ import java.util.List;
  */
 public class TypeSymbol extends Symbol
 {
-
-    private String baseType;
+    private TypeSymbol derivedFrom;
 
     //types built into the language
-    public final static TypeSymbol INT = new TypeSymbol("int", "int");
-    public final static TypeSymbol INT_ARRAY = new TypeSymbol("int_array", "int_array");
-    public final static TypeSymbol FLOAT = new TypeSymbol("float", "float");
-    public final static TypeSymbol FLOAT_ARRAY = new TypeSymbol("float_array", "float_array");
+    public final static TypeSymbol INT = new TypeSymbol("int", null);
+    public final static TypeSymbol FLOAT = new TypeSymbol("float", null);
+    public final static TypeSymbol INT_ARRAY = new TypeSymbol("int_array", null);
+    public final static TypeSymbol FLOAT_ARRAY = new TypeSymbol("float_array", null);
 
-    public TypeSymbol(String name, String baseType)
+    public TypeSymbol(String name, TypeSymbol derivedFrom)
     {
         super(name);
-        this.baseType = baseType;
+        this.derivedFrom = derivedFrom;
     }
 }

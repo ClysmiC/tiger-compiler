@@ -50,6 +50,11 @@ public class ParserTableGenerator
                     str = str.substring(1, str.length() - 1);
                     rhsSymbols.add(NonterminalSymbol.valueOf(str));
                 }
+                else if(str.startsWith("#"))
+                {
+                    str = str.substring(1, str.length());
+                    rhsSymbols.add(SemanticAction.valueOf(str));
+                }
                 else
                 {
                     rhsSymbols.add(Token.valueOf(str));

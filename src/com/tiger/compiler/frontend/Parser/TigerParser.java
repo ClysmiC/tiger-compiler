@@ -12,10 +12,17 @@ public class TigerParser
     private TigerScanner tigerScanner;
     private ParserTable parserTable;
 
+    //Hold onto certain values so that if a semantic action is required (such as putting
+    //something in a symbol table), we have all the info we need.
+    private String latestId;
+    private List<String> idList; //used for declaring variables in list fashion. e.g. var x, y, z : int := 5
+
     public TigerParser(TigerScanner scanner)
     {
         tigerScanner = scanner;
         parserTable = ParserTableGenerator.generateParserTable();
+
+        idList = new LinkedList<>();
     }
 
     public void parse()
@@ -47,6 +54,11 @@ public class TigerParser
             {
                 if (focus == lookAhead)
                 {
+                    if(focus == Token.ID)
+                    {
+                        latestId = token.y;
+                    }
+
                     stack.pop();
                     token = tigerScanner.nextToken();
                     lookAhead = token.x;
@@ -55,44 +67,27 @@ public class TigerParser
                 }
                 else
                 {
-                    String errorString = "(Parser error) Line: " + tigerScanner.getLineNum() + "\n" + tigerScanner.getPartialPrefix() + "<---";
+                    String errorString = "(parser error) Line: " + tigerScanner.getLineNum() + "\n" + tigerScanner.getPartialPrefix() + "<---";
                     errorString += "\nUnexpected token found: " + lookAhead;
                     errorString += "\nExpected token: " + focus;
 
                     stopParsingAndExit(errorString);
                 }
             }
-            else
+            else if (focus instanceof NonterminalSymbol)
             {
                 ParserProduction prod = parserTable.lookup(focus, lookAhead);
 
                 if (prod == ParserProduction.ERROR)
                 {
-//                    List<Token> expectedTokens = parserTable.getExpectedTokens(focus);
-
-                    String errorString = "(Parser error) Line: " + tigerScanner.getLineNum() + "\n" + tigerScanner.getPartialPrefix() + "<---";
+                    String errorString = "(parser error) Line: " + tigerScanner.getLineNum() + "\n" + tigerScanner.getPartialPrefix() + "<---";
                     errorString += "\nUnexpected token found: " + lookAhead;
 
-                    /**
-                     * This way of getting expected tokens isn't working... look into
-                     */
-//                    errorString += "\nExpected token(s): ";
-//
-//                    for(Token t: expectedTokens)
-//                    {
-//                        errorString += t + ", ";
-//                    }
-//
-//                    if(errorString.endsWith(", "))
-//                    {
-//                        errorString = errorString.substring(0, errorString.length() - 2);
-//                    }
+                    //TODO: suggest tokens
+                    //TODO: recover from error and continue parse
 
                     stopParsingAndExit(errorString);
                 }
-
-//                Output.debugPrintln("\nFocus: " + focus + " Lookahead: " + lookAhead);
-//                Output.debugPrintln("Expanding focus: " + prod + "\n");
 
                 stack.pop();
 
@@ -103,6 +98,21 @@ public class TigerParser
                     if(rhs.get(i) != Token.NULL)
                         stack.push(rhs.get(i));
                 }
+            }
+            else if(focus instanceof SemanticAction)
+            {
+                SemanticAction action = (SemanticAction)focus;
+
+                switch(action)
+                {
+                    case PUT_TYPE:
+                    {
+                        //TODO: code for this case....
+                    } break;
+                    //TODO: add a case for each semantic action
+                }
+
+                stack.pop();
             }
 
             focus = stack.peek();
