@@ -2,9 +2,12 @@ package com.tiger.compiler.frontend.parser;
 
 import com.tiger.compiler.Output;
 import com.tiger.compiler.Tuple;
+import com.tiger.compiler.frontend.parser.symboltable.Symbol;
+import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
 import com.tiger.compiler.frontend.scanner.TigerScanner;
 import com.tiger.compiler.frontend.Token;
 
+import java.lang.reflect.Type;
 import java.util.*;
 
 public class TigerParser
@@ -15,12 +18,29 @@ public class TigerParser
     //Hold onto certain values so that if a semantic action is required (such as putting
     //something in a symbol table), we have all the info we need.
     private String latestId;
+    private TypeSymbol latestType;
+    private boolean latestTypeIsArray;
+
     private List<String> idList; //used for declaring variables in list fashion. e.g. var x, y, z : int := 5
+
+    /**
+     * Because of the way Tiger is structured, everything is global, EXCEPT
+     * parameters to functions, which are scoped to that function. These params
+     * exist in the functionSymbolTable, everything else is in the globalSymbolTable
+     */
+    private Map<String, Symbol> globalSymbolTable;
+    private Map<String, Symbol> functionSymbolTable;
 
     public TigerParser(TigerScanner scanner)
     {
         tigerScanner = scanner;
         parserTable = ParserTableGenerator.generateParserTable();
+
+        globalSymbolTable = new HashMap<>();
+        globalSymbolTable.put("int", TypeSymbol.INT);
+        globalSymbolTable.put("float", TypeSymbol.FLOAT);
+
+        functionSymbolTable = new HashMap<>();
 
         idList = new LinkedList<>();
     }
@@ -57,6 +77,22 @@ public class TigerParser
                     if(focus == Token.ID)
                     {
                         latestId = token.y;
+                    }
+                    else if (focus == Token.OF)
+                    {
+                        latestTypeIsArray = true;
+                    }
+                    else if (focus == Token.SEMI)
+                    {
+                        latestTypeIsArray = false;
+                    }
+                    else if (focus == Token.INT)
+                    {
+                        latestType = TypeSymbol.INT;
+                    }
+                    else if (focus == Token.FLOAT)
+                    {
+                        latestType = TypeSymbol.FLOAT;
                     }
 
                     stack.pop();
@@ -107,7 +143,27 @@ public class TigerParser
                 {
                     case PUT_TYPE:
                     {
-                        //TODO: code for this case....
+                        if(!globalSymbolTable.containsKey(latestId))
+                        {
+                            TypeSymbol newType = new TypeSymbol(latestId, latestType, latestTypeIsArray);
+                            globalSymbolTable.put(latestId, newType);
+                            break;
+                        }
+
+                        Output.debugPrintln("ERROR [PUT_TYPE]: Type \"" + latestId + "\" already exists in symbol table.");
+
+                    } break;
+
+                    case CHECK_VALID_TYPE:
+                    {
+                        if(globalSymbolTable.containsKey(latestId) && globalSymbolTable.get(latestId) instanceof TypeSymbol)
+                        {
+                            latestType = (TypeSymbol)globalSymbolTable.get(latestId);
+                            break;
+                        }
+
+                        Output.debugPrintln("ERROR [CHECK_VALID_TYPE]: Type \"" + latestId + "\" not found in symbol table.");
+
                     } break;
                     //TODO: add a case for each semantic action
                 }
