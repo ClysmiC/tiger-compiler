@@ -49,6 +49,7 @@ public class TypeSymbol extends Symbol
         if(this == INT || this == FLOAT)
         {
             str += "\nBase Type: n/a";
+            str += "\n[Note]: primitive type added to symbol table by compiler.";
             return str;
         }
 

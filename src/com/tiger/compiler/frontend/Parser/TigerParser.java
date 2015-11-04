@@ -2,6 +2,7 @@ package com.tiger.compiler.frontend.parser;
 
 import com.tiger.compiler.Output;
 import com.tiger.compiler.Tuple;
+import com.tiger.compiler.frontend.parser.symboltable.FunctionSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.VariableSymbol;
@@ -72,6 +73,7 @@ public class TigerParser
             {
                 Output.println(!tigerScanner.isErrorRaised() ? "\nSuccessful parse\n" : "\nUnsuccessful parse");
 
+                System.out.println("***********SYMBOL TABLE***********");
                 //print out the entire symbol table (for testing)
                 for(String symbolId: globalSymbolTable.keySet())
                 {
@@ -217,12 +219,88 @@ public class TigerParser
 
                     case PUT_VARS_TABLE:
                     {
+                        TypeSymbol type = (TypeSymbol)semanticStack.pop();
 
+                        boolean throwaway = (boolean)semanticStack.pop();
+                        assert throwaway == false; //always false to indicate not an array
+                        assert !semanticStack.isEmpty(); //should always be at least 1 id
+
+                        while(!semanticStack.isEmpty())
+                        {
+                            String id = (String)semanticStack.pop();
+
+                            if(globalSymbolTable.containsKey(id))
+                            {
+                                System.out.println("ERROR"); //TODO: better error behavior
+                            }
+                            else
+                            {
+                                globalSymbolTable.put(id, new VariableSymbol(id, type));
+                            }
+                        }
                     } break;
 
                     case PUT_FUNC_TABLE:
                     {
+                        boolean hasReturnVal = (boolean)semanticStack.pop();
+                        TypeSymbol returnType = null;
 
+                        if(hasReturnVal)
+                        {
+                            returnType = (TypeSymbol)semanticStack.pop();
+                            boolean throwaway = (boolean)semanticStack.pop();
+                            assert throwaway == false;
+                        }
+
+                        assert !semanticStack.isEmpty();
+
+                        //temporarily keep track of all the parameters as we
+                        //pop them off the stack so we can add their types
+                        //to the function symbol and add them to the
+                        //function's symbol table
+                        ArrayList<VariableSymbol> parameters = new ArrayList<>();
+
+                        while(!semanticStack.isEmpty())
+                        {
+                            Object paramTypeOrFuncName = semanticStack.pop();
+
+                            if(paramTypeOrFuncName instanceof TypeSymbol)
+                            {
+                                TypeSymbol paramType = (TypeSymbol)paramTypeOrFuncName;
+                                boolean throwaway = (boolean)semanticStack.pop();
+                                assert throwaway == false;
+                                String paramName = (String)semanticStack.pop();
+
+                                parameters.add(new VariableSymbol(paramName, paramType));
+                            }
+                            else if (paramTypeOrFuncName instanceof String)
+                            {
+                                String id = (String)paramTypeOrFuncName;
+                                List<TypeSymbol> types = new ArrayList<>(parameters.size());
+
+                                //add parameters to the function's Type list in reverse
+                                //(since the last parameter was on the top of the stack
+                                for(int i = parameters.size() - 1; i >= 0; i--)
+                                {
+                                    types.add(parameters.get(i).getType());
+                                }
+
+                                FunctionSymbol function = new FunctionSymbol(id, returnType, types);
+                                Map<String, Symbol> functionSymbolTable = function.getSymbolTable();
+
+                                //build function symbol table conitaining all the params
+                                for(VariableSymbol param: parameters)
+                                {
+                                    functionSymbolTable.put(param.getName(), param);
+                                }
+
+                                globalSymbolTable.put(id, function);
+                            }
+                            else
+                            {
+                                //ERROR
+                            }
+                        }
                     } break;
                 }
 

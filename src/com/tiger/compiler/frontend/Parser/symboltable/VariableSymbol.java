@@ -6,17 +6,11 @@ package com.tiger.compiler.frontend.parser.symboltable;
 public class VariableSymbol extends Symbol
 {
     private TypeSymbol type;
-    private boolean initialized;
-    private boolean isArray;
-    private int arraySize;
 
-    public VariableSymbol(String name, TypeSymbol type, boolean initialized, boolean isArray, int arraySize)
+    public VariableSymbol(String name, TypeSymbol type)
     {
         super(name);
         this.type = type;
-        this.initialized = initialized;
-        this.isArray = isArray;
-        this.arraySize = arraySize;
     }
 
     public TypeSymbol getType()
@@ -24,8 +18,12 @@ public class VariableSymbol extends Symbol
         return type;
     }
 
-    public boolean isInitialized()
+    public String toString()
     {
-        return initialized;
+        String str = ("VariableSymbol");
+        str += "\nName: " + getName();
+        str += "\nType: " + type.getName();
+
+        return str;
     }
 }
