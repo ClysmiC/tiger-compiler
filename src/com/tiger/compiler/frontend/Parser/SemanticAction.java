@@ -5,17 +5,13 @@ package com.tiger.compiler.frontend.parser;
  */
 public enum SemanticAction
 {
-    PUT_TYPE,
-    CHECK_VALID_TYPE,
+    PUT_ID_STACK,
+    PUT_TYPE_STACK,
+    PUT_INT_STACK,
+    PUT_TRUE_STACK,
+    PUT_FALSE_STACK,
 
-    APPEND_VAR_TO_LIST,
-    ADD_TYPE_INFO_TO_VAR_LIST,
-    OPT_INIT_VAR_LIST,
-    INIT_CHECK_TYPE_COMPATIBILITY,
-    PUT_VAR_LIST,
-
-    PUT_FUNC,
-    INIT_FUNC_SYMBOL_TABLE,
-    CLEAR_FUNC_SYMBOL_TABLE,
-    PUT_PARAM
+    PUT_TYPE_TABLE,
+    PUT_VARS_TABLE,
+    PUT_FUNC_TABLE
 }

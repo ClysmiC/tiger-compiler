@@ -4,6 +4,7 @@ import com.tiger.compiler.Output;
 import com.tiger.compiler.Tuple;
 import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
+import com.tiger.compiler.frontend.parser.symboltable.VariableSymbol;
 import com.tiger.compiler.frontend.scanner.TigerScanner;
 import com.tiger.compiler.frontend.Token;
 
@@ -21,7 +22,11 @@ public class TigerParser
     private TypeSymbol latestType;
     private boolean latestTypeIsArray;
 
-    private List<String> idList; //used for declaring variables in list fashion. e.g. var x, y, z : int := 5
+    private boolean initializingVar;
+    private int latestIntLit;
+    private float latestFloatLit;
+
+    private Stack<Object> semanticStack;
 
     /**
      * Because of the way Tiger is structured, everything is global, EXCEPT
@@ -29,7 +34,7 @@ public class TigerParser
      * exist in the functionSymbolTable, everything else is in the globalSymbolTable
      */
     private Map<String, Symbol> globalSymbolTable;
-    private Map<String, Symbol> functionSymbolTable;
+    private Map<String, Map<String, Symbol>> functionSymbolTables;
 
     public TigerParser(TigerScanner scanner)
     {
@@ -40,9 +45,9 @@ public class TigerParser
         globalSymbolTable.put("int", TypeSymbol.INT);
         globalSymbolTable.put("float", TypeSymbol.FLOAT);
 
-        functionSymbolTable = new HashMap<>();
+        functionSymbolTables = new HashMap<>();
 
-        idList = new LinkedList<>();
+        semanticStack = new Stack<>();
     }
 
     public void parse()
@@ -85,6 +90,7 @@ public class TigerParser
                     else if (focus == Token.SEMI)
                     {
                         latestTypeIsArray = false;
+                        initializingVar = false;
                     }
                     else if (focus == Token.INT)
                     {
@@ -93,6 +99,14 @@ public class TigerParser
                     else if (focus == Token.FLOAT)
                     {
                         latestType = TypeSymbol.FLOAT;
+                    }
+                    else if (focus == Token.INTLIT)
+                    {
+                        System.out.println("Int lit: " + token.y);
+                    }
+                    else if (focus == Token.FLOATLIT)
+                    {
+                        System.out.println("Float lit: " + token.y);
                     }
 
                     stack.pop();
@@ -124,6 +138,25 @@ public class TigerParser
 
                     stopParsingAndExit(errorString);
                 }
+                else if (prod.getLhs() == NonterminalSymbol.OPTIONAL_INIT)
+                {
+                    final int DOING_OPTIONAL_INIT = 19;     //these numbers determined by ParserProductions.csv
+                    final int SKIPPING_OPTIONAL_INIT = 20;
+
+                    if(prod.getId() == DOING_OPTIONAL_INIT)
+                    {
+                        initializingVar = true;
+                    }
+                    else if(prod.getId() == SKIPPING_OPTIONAL_INIT)
+                    {
+                        initializingVar = false;
+                    }
+                    else
+                    {
+                        Output.println("Internal compiler error. Unknown production id \"" + prod.getId() + "\" when" +
+                                "expanding OPTIONAL_INIT");
+                    }
+                }
 
                 stack.pop();
 
@@ -141,16 +174,8 @@ public class TigerParser
 
                 switch(action)
                 {
-                    case PUT_TYPE:
+                    case PUT_ID_STACK:
                     {
-                        if(!globalSymbolTable.containsKey(latestId))
-                        {
-                            TypeSymbol newType = new TypeSymbol(latestId, latestType, latestTypeIsArray);
-                            globalSymbolTable.put(latestId, newType);
-                            break;
-                        }
-
-                        Output.debugPrintln("ERROR [PUT_TYPE]: Type \"" + latestId + "\" already exists in symbol table.");
 
                     } break;
 
@@ -165,7 +190,25 @@ public class TigerParser
                         Output.debugPrintln("ERROR [CHECK_VALID_TYPE]: Type \"" + latestId + "\" not found in symbol table.");
 
                     } break;
-                    //TODO: add a case for each semantic action
+
+                    case APPEND_VAR_TO_LIST:
+                    {
+                        if(!globalSymbolTable.containsKey(latestId) && !idList.contains(latestId))
+                        {
+                            idList.add(latestId);
+                            break;
+                        }
+
+                        Output.debugPrintln("ERROR [APPEND_VAR_TO_LIST]: Type \"" + latestId + "\" already exists in symbol table.");
+                    } break;
+
+                    case PUT_VAR_LIST:
+                    {
+                        for(String id: idList)
+                        {
+                            VariableSymbol symbol = new VariableSymbol(id, latestType, initializingVar);
+                        }
+                    }
                 }
 
                 stack.pop();
