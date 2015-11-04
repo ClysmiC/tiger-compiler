@@ -2,8 +2,10 @@ package com.tiger.compiler.frontend.parser;
 
 import com.tiger.compiler.Tuple;
 import com.tiger.compiler.frontend.Token;
+import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class ParserTableGenerator
@@ -44,6 +46,11 @@ public class ParserTableGenerator
             while(rowScanner.hasNext())
             {
                 String str = rowScanner.next();
+
+                //TODO: why is empty string ever even coming up?
+                //this is a temporary fix to ignore empty strings
+                if(str.isEmpty())
+                    continue;
 
                 if(str.startsWith("<") && str.endsWith(">"))
                 {
