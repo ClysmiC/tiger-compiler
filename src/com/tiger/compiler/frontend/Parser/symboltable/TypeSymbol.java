@@ -40,4 +40,19 @@ public class TypeSymbol extends Symbol
     {
         return isArrayOfBaseType;
     }
+
+    public String toString()
+    {
+        String str = "TypeSymbol";
+        str += "\nName: " + getName();
+
+        if(this == INT || this == FLOAT)
+        {
+            str += "\nBase Type: n/a";
+            return str;
+        }
+
+        str += "\nBase Type: " + ((isArrayOfBaseType) ? "array[" + arraySize + "] of " : "") + baseType.getName();
+        return str;
+    }
 }

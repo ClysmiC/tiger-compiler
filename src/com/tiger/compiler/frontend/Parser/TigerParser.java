@@ -20,9 +20,7 @@ public class TigerParser
     //something in a symbol table), we have all the info we need.
     private String latestId;
     private TypeSymbol latestType;
-    private boolean latestTypeIsArray;
 
-    private boolean initializingVar;
     private int latestIntLit;
     private float latestFloatLit;
 
@@ -72,7 +70,14 @@ public class TigerParser
         {
             if (focus == Token.EOF && lookAhead == Token.EOF)
             {
-                Output.println(!tigerScanner.isErrorRaised() ? "\nSuccessful parse" : "\nUnsuccessful parse");
+                Output.println(!tigerScanner.isErrorRaised() ? "\nSuccessful parse\n" : "\nUnsuccessful parse");
+
+                //print out the entire symbol table (for testing)
+                for(String symbolId: globalSymbolTable.keySet())
+                {
+                    System.out.println(globalSymbolTable.get(symbolId) + "\n");
+                }
+
                 System.exit(0);
             }
             else if (focus instanceof Token)
@@ -82,15 +87,16 @@ public class TigerParser
                     if(focus == Token.ID)
                     {
                         latestId = token.y;
-                    }
-                    else if (focus == Token.OF)
-                    {
-                        latestTypeIsArray = true;
-                    }
-                    else if (focus == Token.SEMI)
-                    {
-                        latestTypeIsArray = false;
-                        initializingVar = false;
+
+                        if(globalSymbolTable.containsKey(latestId))
+                        {
+                            Symbol symbol = globalSymbolTable.get(latestId);
+
+                            if(symbol instanceof TypeSymbol)
+                            {
+                                latestType = (TypeSymbol)symbol;
+                            }
+                        }
                     }
                     else if (focus == Token.INT)
                     {
@@ -102,11 +108,11 @@ public class TigerParser
                     }
                     else if (focus == Token.INTLIT)
                     {
-                        System.out.println("Int lit: " + token.y);
+                        latestIntLit = new Integer(token.y);
                     }
                     else if (focus == Token.FLOATLIT)
                     {
-                        System.out.println("Float lit: " + token.y);
+                        latestFloatLit = new Float(token.y);
                     }
 
                     stack.pop();
@@ -138,25 +144,6 @@ public class TigerParser
 
                     stopParsingAndExit(errorString);
                 }
-                else if (prod.getLhs() == NonterminalSymbol.OPTIONAL_INIT)
-                {
-                    final int DOING_OPTIONAL_INIT = 19;     //these numbers determined by ParserProductions.csv
-                    final int SKIPPING_OPTIONAL_INIT = 20;
-
-                    if(prod.getId() == DOING_OPTIONAL_INIT)
-                    {
-                        initializingVar = true;
-                    }
-                    else if(prod.getId() == SKIPPING_OPTIONAL_INIT)
-                    {
-                        initializingVar = false;
-                    }
-                    else
-                    {
-                        Output.println("Internal compiler error. Unknown production id \"" + prod.getId() + "\" when" +
-                                "expanding OPTIONAL_INIT");
-                    }
-                }
 
                 stack.pop();
 
@@ -176,39 +163,67 @@ public class TigerParser
                 {
                     case PUT_ID_STACK:
                     {
+                        semanticStack.push(latestId);
+                    } break;
+
+                    case PUT_TYPE_STACK:
+                    {
+                        semanticStack.push(latestType);
+                    } break;
+
+                    case PUT_INT_STACK:
+                    {
+                        semanticStack.push(latestIntLit);
+                    } break;
+
+                    case PUT_TRUE_STACK:
+                    {
+                        semanticStack.push(true);
+                    } break;
+
+                    case PUT_FALSE_STACK:
+                    {
+                        semanticStack.push(false);
+                    } break;
+
+                    case PUT_TYPE_TABLE:
+                    {
+                        TypeSymbol baseType = (TypeSymbol)semanticStack.pop();
+                        boolean isArray = (boolean)semanticStack.pop();
+                        int arraySize = 0;
+
+                        if(isArray)
+                        {
+                            arraySize = (int)semanticStack.pop();
+                        }
+
+                        String id = (String)semanticStack.pop();
+
+                        assert semanticStack.isEmpty();
+
+                        if(globalSymbolTable.containsKey(id))
+                        {
+                            System.out.println("ERROR"); //TODO: better error behavior
+                        }
+                        else
+                        {
+                            if(isArray)
+                                globalSymbolTable.put(id, new TypeSymbol(id, baseType, arraySize));
+                            else
+                                globalSymbolTable.put(id, new TypeSymbol(id, baseType));
+                        }
 
                     } break;
 
-                    case CHECK_VALID_TYPE:
+                    case PUT_VARS_TABLE:
                     {
-                        if(globalSymbolTable.containsKey(latestId) && globalSymbolTable.get(latestId) instanceof TypeSymbol)
-                        {
-                            latestType = (TypeSymbol)globalSymbolTable.get(latestId);
-                            break;
-                        }
-
-                        Output.debugPrintln("ERROR [CHECK_VALID_TYPE]: Type \"" + latestId + "\" not found in symbol table.");
 
                     } break;
 
-                    case APPEND_VAR_TO_LIST:
+                    case PUT_FUNC_TABLE:
                     {
-                        if(!globalSymbolTable.containsKey(latestId) && !idList.contains(latestId))
-                        {
-                            idList.add(latestId);
-                            break;
-                        }
 
-                        Output.debugPrintln("ERROR [APPEND_VAR_TO_LIST]: Type \"" + latestId + "\" already exists in symbol table.");
                     } break;
-
-                    case PUT_VAR_LIST:
-                    {
-                        for(String id: idList)
-                        {
-                            VariableSymbol symbol = new VariableSymbol(id, latestType, initializingVar);
-                        }
-                    }
                 }
 
                 stack.pop();
