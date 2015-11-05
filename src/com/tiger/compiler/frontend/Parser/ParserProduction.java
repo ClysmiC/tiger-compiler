@@ -1,16 +1,18 @@
 package com.tiger.compiler.frontend.parser;
 
+import com.tiger.compiler.frontend.GrammarSymbol;
+
 import java.util.List;
 
 public class ParserProduction
 {
     private int id;
     private NonterminalSymbol lhs;
-    private List<Enum> rhs; //list of tokens and / or nonterminal symbols
+    private List<GrammarSymbol> rhs; //list of tokens and / or nonterminal symbols
 
     public static final ParserProduction ERROR = new ParserProduction(-1, null, null);
 
-    public ParserProduction(int id, NonterminalSymbol lhs, List<Enum> rhs)
+    public ParserProduction(int id, NonterminalSymbol lhs, List<GrammarSymbol> rhs)
     {
         this.id = id;
         this.lhs = lhs;
@@ -25,7 +27,7 @@ public class ParserProduction
         return lhs;
     }
 
-    public List<Enum> getRhs() {
+    public List<GrammarSymbol> getRhs() {
         return rhs;
     }
 
@@ -34,7 +36,7 @@ public class ParserProduction
     {
         String str = ("Id: " + id + " | " + lhs + " ->");
 
-        for(Enum e: rhs)
+        for(GrammarSymbol e: rhs)
         {
             str += " " + e;
         }

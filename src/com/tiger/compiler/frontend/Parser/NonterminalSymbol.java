@@ -1,6 +1,8 @@
 package com.tiger.compiler.frontend.parser;
 
-public enum NonterminalSymbol
+import com.tiger.compiler.frontend.GrammarSymbol;
+
+public enum NonterminalSymbol implements GrammarSymbol
 {
     ERROR,
     TIGER_PROGRAM,

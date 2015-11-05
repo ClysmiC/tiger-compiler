@@ -1,6 +1,7 @@
 package com.tiger.compiler.frontend.parser;
 
 import com.tiger.compiler.Tuple;
+import com.tiger.compiler.frontend.GrammarSymbol;
 import com.tiger.compiler.frontend.Token;
 import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 
@@ -41,7 +42,7 @@ public class ParserTableGenerator
             NonterminalSymbol lhsSymbol = NonterminalSymbol.valueOf(lhs);
 
             rowScanner.useDelimiter("[, ]");
-            List<Enum> rhsSymbols = new ArrayList<>();
+            List<GrammarSymbol> rhsSymbols = new ArrayList<>();
 
             while(rowScanner.hasNext())
             {

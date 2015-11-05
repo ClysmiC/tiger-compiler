@@ -1,9 +1,11 @@
 package com.tiger.compiler.frontend.parser;
 
+import com.tiger.compiler.frontend.GrammarSymbol;
+
 /**
  * Created by Andrew on 11/1/2015.
  */
-public enum SemanticAction
+public enum SemanticAction implements GrammarSymbol
 {
     PUT_ID_STACK,
     PUT_TYPE_STACK,

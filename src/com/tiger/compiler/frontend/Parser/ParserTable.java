@@ -1,6 +1,7 @@
 package com.tiger.compiler.frontend.parser;
 
 import com.tiger.compiler.Tuple;
+import com.tiger.compiler.frontend.GrammarSymbol;
 import com.tiger.compiler.frontend.Token;
 
 import java.util.ArrayList;
@@ -16,7 +17,7 @@ public class ParserTable
         this.table = table;
     }
 
-    public ParserProduction lookup(Enum symbol1, Enum symbol2)
+    public ParserProduction lookup(GrammarSymbol symbol1, GrammarSymbol symbol2)
     {
         Tuple key = new Tuple((NonterminalSymbol)symbol1, (Token)symbol2);
         ParserProduction value = table.get(key);

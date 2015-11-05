@@ -2,7 +2,7 @@ package com.tiger.compiler.frontend;
 
 import com.tiger.compiler.frontend.scanner.DfaState;
 
-public enum Token
+public enum Token implements GrammarSymbol
 {
     COMMA, COLON, SEMI, LPAREN, RPAREN, LBRACK, RBRACK, LBRACE, RBRACE, PERIOD,
     PLUS, MINUS, MULT, DIV, EQ, NEQ, LESSER, GREATER, LESSEREQ, GREATEREQ, AND, OR, ASSIGN,

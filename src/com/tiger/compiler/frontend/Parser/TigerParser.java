@@ -2,6 +2,7 @@ package com.tiger.compiler.frontend.parser;
 
 import com.tiger.compiler.Output;
 import com.tiger.compiler.Tuple;
+import com.tiger.compiler.frontend.GrammarSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.FunctionSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
@@ -51,10 +52,10 @@ public class TigerParser
 
     public void parse()
     {
-        Enum focus;
-        Enum lookAhead;
+        GrammarSymbol focus;
+        GrammarSymbol lookAhead;
 
-        Stack<Enum> stack = new Stack<>();
+        Stack<GrammarSymbol> stack = new Stack<>();
         stack.add(Token.EOF);
         stack.add(NonterminalSymbol.TIGER_PROGRAM);
 
@@ -149,7 +150,7 @@ public class TigerParser
 
                 stack.pop();
 
-                List<Enum> rhs = prod.getRhs();
+                List<GrammarSymbol> rhs = prod.getRhs();
 
                 for (int i = rhs.size() - 1; i >= 0; i--)
                 {
