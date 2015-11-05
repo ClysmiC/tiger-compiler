@@ -79,6 +79,10 @@ public class ParseTreeNode
             return returnVal;
         }
 
+        //set it back to 0 in case we want to use this helper for
+        //another traversal later
+        nextChildToVisit = 0;
+
         if(parent == null)
             return null;
 
@@ -90,7 +94,7 @@ public class ParseTreeNode
         String str = "";
 
         for(int i = 0; i < indentation; i++)
-            str += " ";
+            str += (((i & 1) == 1) ? "__" : ".."); //alternate indentation styles to make it easier for eyes to find all children
 
         str += nodeType.toString();
         str += "\n";

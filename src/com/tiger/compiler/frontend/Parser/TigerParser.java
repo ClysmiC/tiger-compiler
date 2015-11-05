@@ -81,17 +81,7 @@ public class TigerParser
             {
                 Output.println(!tigerScanner.isErrorRaised() ? "\nSuccessful parse\n" : "\nUnsuccessful parse");
 
-                Output.debugPrintln("***********SYMBOL TABLE***********");
-                //print out the entire symbol table (for testing)
-                for(String symbolId: globalSymbolTable.keySet())
-                {
-                    Output.debugPrintln(globalSymbolTable.get(symbolId) + "\n");
-                }
-
-                Output.debugPrintln("\n\n\n***********PARSE TREE***********");
-                Output.debugPrintln(parseTreeRoot.nodeToString(0));
-
-                System.exit(0);
+                return; //done parsing :)
             }
             else if (focus instanceof Token)
             {
@@ -388,5 +378,26 @@ public class TigerParser
         Output.println("\nUnsuccessful parse");
 
         System.exit(1);
+    }
+
+    /**
+     * Must be called after parse()
+     */
+    public ParseTreeNode getParseTree()
+    {
+        return parseTreeRoot;
+    }
+
+    /**
+     *
+     */
+    public Map<String, Symbol> getGlobalSymbolTable()
+    {
+        return globalSymbolTable;
+    }
+
+    public Map<String, java.util.Map<String, Symbol>> getFunctionSymbolTables()
+    {
+        return functionSymbolTables;
     }
 }
