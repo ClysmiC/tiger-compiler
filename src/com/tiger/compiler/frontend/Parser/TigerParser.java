@@ -3,6 +3,7 @@ package com.tiger.compiler.frontend.parser;
 import com.tiger.compiler.Output;
 import com.tiger.compiler.Tuple;
 import com.tiger.compiler.frontend.GrammarSymbol;
+import com.tiger.compiler.frontend.parser.parsetree.ParseTreeNode;
 import com.tiger.compiler.frontend.parser.symboltable.FunctionSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
@@ -36,6 +37,9 @@ public class TigerParser
     private Map<String, Symbol> globalSymbolTable;
     private Map<String, Map<String, Symbol>> functionSymbolTables;
 
+    private ParseTreeNode parseTreeRoot;
+    private ParseTreeNode parseTreeFocus;
+
     public TigerParser(TigerScanner scanner)
     {
         tigerScanner = scanner;
@@ -59,6 +63,9 @@ public class TigerParser
         stack.add(Token.EOF);
         stack.add(NonterminalSymbol.TIGER_PROGRAM);
 
+        parseTreeRoot = new ParseTreeNode(null, NonterminalSymbol.TIGER_PROGRAM);
+        parseTreeFocus = parseTreeRoot;
+
         focus = stack.peek();
 
         Tuple<Token, String> token;
@@ -74,12 +81,15 @@ public class TigerParser
             {
                 Output.println(!tigerScanner.isErrorRaised() ? "\nSuccessful parse\n" : "\nUnsuccessful parse");
 
-                System.out.println("***********SYMBOL TABLE***********");
+                Output.debugPrintln("***********SYMBOL TABLE***********");
                 //print out the entire symbol table (for testing)
                 for(String symbolId: globalSymbolTable.keySet())
                 {
-                    System.out.println(globalSymbolTable.get(symbolId) + "\n");
+                    Output.debugPrintln(globalSymbolTable.get(symbolId) + "\n");
                 }
+
+                Output.debugPrintln("\n\n\n***********PARSE TREE***********");
+                Output.debugPrintln(parseTreeRoot.nodeToString(0));
 
                 System.exit(0);
             }
@@ -122,6 +132,8 @@ public class TigerParser
                     token = tigerScanner.nextToken();
                     lookAhead = token.x;
 
+                    parseTreeFocus = parseTreeFocus.nextNodePreOrder();
+
                     Output.debugPrintln(token.x.toString());
                 }
                 else
@@ -152,10 +164,29 @@ public class TigerParser
 
                 List<GrammarSymbol> rhs = prod.getRhs();
 
+                List<ParseTreeNode> parseTreeChildren = new ArrayList<>();
+
+                //add symbols to the parse tree
+                for(GrammarSymbol symbol: rhs)
+                {
+                    if(symbol instanceof SemanticAction || symbol == Token.NULL)
+                        continue;
+
+                    parseTreeChildren.add(new ParseTreeNode(parseTreeFocus, symbol));
+                }
+
+                parseTreeFocus.setChildren(parseTreeChildren);
+
+                //travel to the next node (should mirror behavior of parse stack)
+                parseTreeFocus = parseTreeFocus.nextNodePreOrder();
+
+                //add symbols to the stack in reverse order
                 for (int i = rhs.size() - 1; i >= 0; i--)
                 {
                     if(rhs.get(i) != Token.NULL)
+                    {
                         stack.push(rhs.get(i));
+                    }
                 }
             }
             else if(focus instanceof SemanticAction)
@@ -206,7 +237,8 @@ public class TigerParser
 
                         if(globalSymbolTable.containsKey(id))
                         {
-                            System.out.println("ERROR"); //TODO: better error behavior
+                            System.out.println("Error: \"" + id + "\" already exists in symbol table." +
+                                    "Could not create new type");
                         }
                         else
                         {
@@ -232,7 +264,8 @@ public class TigerParser
 
                             if(globalSymbolTable.containsKey(id))
                             {
-                                System.out.println("ERROR"); //TODO: better error behavior
+                                System.out.println("Error: \"" + id + "\" already exists in symbol table." +
+                                        "Could not create new variable");
                             }
                             else
                             {
@@ -292,10 +325,25 @@ public class TigerParser
                                 //build function symbol table conitaining all the params
                                 for(VariableSymbol param: parameters)
                                 {
+                                    if(functionSymbolTable.containsKey(param.getName()))
+                                    {
+                                        Output.println("Error: Repeat parameter name \"" + param.getName() +
+                                                "\" in function \"" + function.getName() + "\"");
+                                        break;
+                                    }
+
                                     functionSymbolTable.put(param.getName(), param);
                                 }
 
-                                globalSymbolTable.put(id, function);
+                                if(globalSymbolTable.containsKey(id))
+                                {
+                                    Output.println("Error: \"" + id + "\" already exists in symbol table." +
+                                            "Could not create new function.");
+                                }
+                                else
+                                {
+                                    globalSymbolTable.put(id, function);
+                                }
                             }
                             else
                             {

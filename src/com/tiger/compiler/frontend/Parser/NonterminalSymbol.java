@@ -11,7 +11,7 @@ public enum NonterminalSymbol implements GrammarSymbol
     VAR_DECLARATION_LIST,
     FUNC_DECLARATION_LIST,
     TYPE_DECLARATION,
-    TYPE,
+    TYPE_SYMBOL,
     TYPE_ID,
     VAR_DECLARATION,
     ID_LIST,
