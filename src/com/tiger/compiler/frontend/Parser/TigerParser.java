@@ -63,7 +63,7 @@ public class TigerParser
         stack.add(Token.EOF);
         stack.add(NonterminalSymbol.TIGER_PROGRAM);
 
-        parseTreeRoot = new ParseTreeNode(null, NonterminalSymbol.TIGER_PROGRAM);
+        parseTreeRoot = new ParseTreeNode(null, NonterminalSymbol.TIGER_PROGRAM, null);
         parseTreeFocus = parseTreeRoot;
 
         focus = stack.peek();
@@ -119,10 +119,13 @@ public class TigerParser
                     }
 
                     stack.pop();
+
+                    //add the actual id, intlit, floatlit, etc. to the parse tree nodes
+                    parseTreeFocus.setLiteralToken(token.y);
+                    parseTreeFocus = parseTreeFocus.nextNodePreOrder();
+
                     token = tigerScanner.nextToken();
                     lookAhead = token.x;
-
-                    parseTreeFocus = parseTreeFocus.nextNodePreOrder();
 
                     Output.debugPrintln(token.x.toString());
                 }
@@ -162,7 +165,8 @@ public class TigerParser
                     if(symbol instanceof SemanticAction || symbol == Token.NULL)
                         continue;
 
-                    parseTreeChildren.add(new ParseTreeNode(parseTreeFocus, symbol));
+                    //we will add the literal token to the node once we match it, assume it is null for now
+                    parseTreeChildren.add(new ParseTreeNode(parseTreeFocus, symbol, null));
                 }
 
                 parseTreeFocus.setChildren(parseTreeChildren);

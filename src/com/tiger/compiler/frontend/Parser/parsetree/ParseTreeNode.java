@@ -7,27 +7,31 @@ import com.tiger.compiler.frontend.parser.NonterminalSymbol;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by Andrew on 11/4/2015.
- */
 public class ParseTreeNode
 {
     private ParseTreeNode parent;
     private GrammarSymbol nodeType;
+
+    //this only makes sense for tokens. for nonterminals, just use null
+    //useful for ids, intlits, and floats
+    private String literalToken;
+
     private List<ParseTreeNode> children;
+    private ParseTreeAttributes attributes;
 
     private int nextChildToVisit = 0;
 
-    public ParseTreeNode(ParseTreeNode parent, GrammarSymbol nodeType)
+    public ParseTreeNode(ParseTreeNode parent, GrammarSymbol nodeType, String literalToken)
     {
-        this(parent, nodeType, null);
+        this(parent, nodeType, literalToken, null);
     }
 
-    public ParseTreeNode(ParseTreeNode parent, GrammarSymbol nodeType, List<ParseTreeNode> children)
+    public ParseTreeNode(ParseTreeNode parent, GrammarSymbol nodeType, String literalToken, List<ParseTreeNode> children)
     {
         this.parent = parent;
         this.nodeType = nodeType;
         this.children = new ArrayList<>();
+        this.literalToken = literalToken;
 
         if(children != null)
         {
@@ -38,6 +42,8 @@ public class ParseTreeNode
                     this.children.add(child);
             }
         }
+
+        attributes = new ParseTreeAttributes(null, null, null);
     }
 
     public void setChildren(List<ParseTreeNode> children)
@@ -96,7 +102,7 @@ public class ParseTreeNode
         for(int i = 0; i < indentation; i++)
             str += (((i & 1) == 1) ? "__" : ".."); //alternate indentation styles to make it easier for eyes to find all children
 
-        str += nodeType.toString();
+        str += nodeType.toString() + " :: " + literalToken;
         str += "\n";
 
         for(ParseTreeNode child: children)
@@ -105,5 +111,25 @@ public class ParseTreeNode
         }
 
         return str;
+    }
+
+    public GrammarSymbol getNodeType()
+    {
+        return nodeType;
+    }
+
+    public ParseTreeAttributes getAttributes()
+    {
+        return attributes;
+    }
+
+    public String getLiteralToken()
+    {
+        return literalToken;
+    }
+
+    public void setLiteralToken(String literalToken)
+    {
+        this.literalToken = literalToken;
     }
 }
