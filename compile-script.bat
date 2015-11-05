@@ -1,1 +1,1 @@
-javac src/com/tiger/compiler/*.java src/com/tiger/compiler/frontend/*.java src/com/tiger/compiler/frontend/scanner/*.java src/com/tiger/compiler/frontend/parser/*.java
+javac src/com/tiger/compiler/*.java src/com/tiger/compiler/frontend/*.java src/com/tiger/compiler/frontend/scanner/*.java src/com/tiger/compiler/frontend/parser/*.java src/com/tiger/compiler/frontend/parser/parsetree/*.java src/com/tiger/compiler/frontend/parser/symboltable/*.java -Xlint

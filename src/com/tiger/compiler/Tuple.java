@@ -23,7 +23,7 @@ public class Tuple<X, Y> {
 			return false;
 		}
 
-		Tuple<X, Y> other = (Tuple<X, Y>)obj;
+		Tuple<?, ?> other = (Tuple<?, ?>)obj;
 
 		return x.equals(other.x) && y.equals(other.y);
 	}
