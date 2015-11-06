@@ -10,10 +10,7 @@ import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.VariableSymbol;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TigerSemanticAnalyzer
 {
@@ -137,29 +134,42 @@ public class TigerSemanticAnalyzer
             case "ID": {
                 //ID's can decorate their own node, but they don't perform any real semantic actions
 
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
                 //inherit function symbol table from parent
                 ParseTreeNode parent = node.getParent();
                 Map<String, Object> parentAttributes = attributes.get(parent);
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
 
-                VariableSymbol variable;
+                Symbol symbol;
                 String id = node.getLiteralToken();
 
                 //check function symbol table first
-                if (functionSymbolTable != null && functionSymbolTable.containsKey(id)) {
-                    variable = (VariableSymbol) functionSymbolTable.get(id);
-                } else if (globalSymbolTable.containsKey(id)) {
-                    variable = (VariableSymbol) globalSymbolTable.get(id);
-                } else {
+                if (functionSymbolTable != null && functionSymbolTable.containsKey(id))
+                {
+                    symbol = functionSymbolTable.get(id);
+                }
+                else if (globalSymbolTable.containsKey(id))
+                {
+                    symbol = globalSymbolTable.get(id);
+                }
+                else
+                {
                     semanticErrors.add("Undeclared identifier \"" + id + "\"");
                     return;
                 }
 
-                TypeSymbol myType = variable.getType();
+                TypeSymbol myType;
 
-                Map<String, Object> myAttributes = new HashMap<>();
+                if(symbol instanceof VariableSymbol)
+                    myType = ((VariableSymbol)symbol).getType();
+                else if(symbol instanceof FunctionSymbol)
+                    myType = ((FunctionSymbol)symbol).getReturnType();
+                else
+                    myType = ((TypeSymbol)symbol);
+
                 myAttributes.put("type", myType);
-                attributes.put(node, myAttributes);
             }
             break;
 
@@ -430,12 +440,14 @@ public class TigerSemanticAnalyzer
                         //RHS is an expression
 
                         String varId = children.get(0).getLiteralToken();
-                        TypeSymbol type1;
+                        boolean indexedIntoArray = !((boolean)exprOrFuncEndAttributes.get("isLValueTailNull"));
+
+                        TypeSymbol idType;
 
                         if(functionSymbolTable != null && functionSymbolTable.containsKey(varId))
                         {
                             //assume this cast is safe because function symbol table only contains parameters (variables)
-                            type1 = ((VariableSymbol)functionSymbolTable.get(varId)).getType();
+                            idType = ((VariableSymbol)functionSymbolTable.get(varId)).getType();
                         }
                         else if(globalSymbolTable.containsKey(varId))
                         {
@@ -443,7 +455,23 @@ public class TigerSemanticAnalyzer
 
                             if(symbol instanceof VariableSymbol)
                             {
-                                type1 = ((VariableSymbol)symbol).getType();
+                                idType = ((VariableSymbol)symbol).getType();
+
+                                if(indexedIntoArray && !idType.isArrayOfBaseType())
+                                {
+                                    semanticErrors.add("Cannot index into variables whose type is not an array.");
+                                    return;
+                                }
+
+                                if(indexedIntoArray)
+                                {
+                                    idType = idType.getBaseType();
+                                    //eg, the type of x[5] would be int in the following code
+                                    /**
+                                     * type ArrayInt = array [100] of int;
+                                     * var x : ArrayInt;
+                                     */
+                                }
                             }
                             else
                             {
@@ -458,8 +486,8 @@ public class TigerSemanticAnalyzer
                             return;
                         }
 
-                        TypeSymbol type2 = (TypeSymbol)exprOrFuncEndAttributes.get("type");
-                        TypeSymbol resultType = inferType(type1, type2);
+                        TypeSymbol exprOrFuncEndType = (TypeSymbol)exprOrFuncEndAttributes.get("type");
+                        TypeSymbol resultType = inferType(idType, exprOrFuncEndType);
 
                         if(resultType != null)
                         {
@@ -467,7 +495,7 @@ public class TigerSemanticAnalyzer
                         }
                         else
                         {
-                            semanticErrors.add("Operation between incompatible types: \"" + type1 + "\" and \"" + type2 + "\"");
+                            semanticErrors.add("Operation between incompatible types: \"" + idType.getName() + "\" and \"" + exprOrFuncEndType.getName() + "\"");
                             return;
                         }
                     }
@@ -488,7 +516,7 @@ public class TigerSemanticAnalyzer
                     }
                     else
                     {
-                        semanticErrors.add("Operation between incompatible types: \"" + type1 + "\" and \"" + type2 + "\"");
+                        semanticErrors.add("Operation between incompatible types: \"" + type1.getName() + "\" and \"" + type2.getName() + "\"");
                         return;
                     }
                 }
@@ -509,7 +537,8 @@ public class TigerSemanticAnalyzer
                     }
                     else
                     {
-                        semanticErrors.add("Operation between incompatible types: \"" + constType + "\" and \"" + primeTermType + "\"");
+                        semanticErrors.add("Operation between incompatible types: \"" + constType.getName() +
+                                "\" and \"" + primeTermType.getName() + "\"");
                         return;
                     }
                 }
@@ -517,12 +546,44 @@ public class TigerSemanticAnalyzer
 
             case "EXPR_OR_FUNC_END":
             {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
 
-            }
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>)parentAttributes.get("functionSymbolTable");
+                myAttributes.put("functionSymbolTable", functionSymbolTable);
+
+                //Analyze children node
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                {
+                    analyze(child);
+                }
+
+                //<EXPR_OR_FUNC_END> -> <LVALUE_TAIL> <PRIME_TERM>
+                if(children.get(0).getNodeType() == NonterminalSymbol.LVALUE_TAIL)
+                {
+                    Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
+                    Map<String, Object> primeTermAttributes = attributes.get(children.get(1));
+
+                    myAttributes.put("isFunction", false);
+                    myAttributes.put("isLValueTailNull", lValueTailAttributes.get("isNull"));
+                    myAttributes.put("type", primeTermAttributes.get("type"));
+                }
+                //<EXPR_OR_FUNC_END> -> <FUNC_CALL_END>
+                else
+                {
+                    myAttributes.put("isFunction", true);
+                }
+
+            } break;
 
             case "FUNC_CALL_END":
             case "IF_STAT":
             case "IF_END":
+            {
+
+            } break;
 
             case "CONST":
             {
@@ -540,6 +601,90 @@ public class TigerSemanticAnalyzer
 
 
             case "FACTOR":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>)parentAttributes.get("functionSymbolTable");
+                myAttributes.put("functionSymbolTable", functionSymbolTable);
+
+                //Analyze children node
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                {
+                    analyze(child);
+                }
+
+                //<FACTOR> -> LPAREN <EXPR> RPAREN
+                if(children.get(0).getNodeType() == Token.LPAREN)
+                {
+                    Map<String, Object> exprAttributes = attributes.get(children.get(1));
+                    TypeSymbol exprType = (TypeSymbol)exprAttributes.get("type");
+
+                    myAttributes.put("type", exprType);
+                }
+                //<FACTOR> -> ID <LVALUE_TAIL>
+                else if(children.get(0).getNodeType() == Token.ID)
+                {
+                    String varId = children.get(0).getLiteralToken();
+                    Map<String, Object> lValueTailAttributes = attributes.get(children.get(1));
+
+                    boolean indexedIntoArray = !(boolean)lValueTailAttributes.get("isNull");
+                    VariableSymbol var;
+
+                    if(functionSymbolTable != null && functionSymbolTable.containsKey(varId))
+                    {
+                        //FST should only contain parameters, so we can assume this cast is safe
+                        var = (VariableSymbol)functionSymbolTable.get(varId);
+                    }
+                    else if(globalSymbolTable.containsKey(varId))
+                    {
+                        Symbol symbol = globalSymbolTable.get(varId);
+
+                        if(symbol instanceof VariableSymbol)
+                        {
+                            TypeSymbol type = ((VariableSymbol)symbol).getType();
+
+                            if(indexedIntoArray && !type.isArrayOfBaseType())
+                            {
+                                semanticErrors.add("Cannot index into variables whose type is not an array.");
+                                return;
+                            }
+
+                            if(indexedIntoArray)
+                            {
+                                type = type.getBaseType();
+                                //eg, the type of x[5] would be int in the following code
+                                /**
+                                 * type ArrayInt = array [100] of int;
+                                 * var x : ArrayInt;
+                                 */
+                            }
+
+                            myAttributes.put("type", type);
+                        }
+                        else
+                        {
+                            semanticErrors.add("Expressions can only include variables and constants.");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        semanticErrors.add("Undeclared identifier \"" + varId + "\"");
+                        return;
+                    }
+                }
+                //<FACTOR> -> <CONST>
+                else if(children.get(0).getNodeType() == NonterminalSymbol.CONST)
+                {
+                    Map<String, Object> constAttributes = attributes.get(children.get(0));
+                    TypeSymbol exprType = (TypeSymbol)constAttributes.get("type");
+
+                    myAttributes.put("type", exprType);
+                }
+            } break;
 
 
 
@@ -573,7 +718,7 @@ public class TigerSemanticAnalyzer
                 }
                 else
                 {
-                    semanticErrors.add("Operation between incompatible types: \"" + type1 + "\" and \"" + type2 + "\"");
+                    semanticErrors.add("Operation between incompatible types: \"" + type1.getName() + "\" and \"" + type2.getName() + "\"");
                     return;
                 }
             } break;
@@ -640,6 +785,7 @@ public class TigerSemanticAnalyzer
                 //<LVALUE_TAIL> -> NULL
                 if(children.isEmpty())
                 {
+                    myAttributes.put("isNull", true);
                     return;
                 }
                 //<LVALUE_TAIL> -> LBRACK <EXPR> RBRACK
@@ -649,6 +795,7 @@ public class TigerSemanticAnalyzer
                     TypeSymbol exprType = (TypeSymbol)exprAttributes.get("type");
 
                     myAttributes.put("type", exprType);
+                    myAttributes.put("isNull", false);
 
                     if(exprType != TypeSymbol.INT)
                     {
@@ -656,11 +803,7 @@ public class TigerSemanticAnalyzer
                         return;
                     }
                 }
-
-                Map<String, Object> childAttributes = attributes.get(children.get(0));
-
-                myAttributes.put("type", childAttributes.get("type"));
-            }
+            } break;
 
             case "EXPR_PRIME":
             case "TERM1_PRIME":
@@ -699,15 +842,15 @@ public class TigerSemanticAnalyzer
                     TypeSymbol type1 = (TypeSymbol)firstTermAttributes.get("type");
                     TypeSymbol type2 = (TypeSymbol)secondTermAttributes.get("type");
 
-                    TypeSymbol result = inferType(type1, type2);
+                    TypeSymbol resultType = inferType(type1, type2);
 
-                    if(result != null)
+                    if(resultType != null)
                     {
-                        myAttributes.put("type", children.get(1));
+                        myAttributes.put("type", resultType);
                     }
                     else
                     {
-                        semanticErrors.add("Operation between incompatible types: \"" + type1 + "\" and \"" + type2 + "\"");
+                        semanticErrors.add("Operation between incompatible types: \"" + type1.getName() + "\" and \"" + type2.getName() + "\"");
                         return;
                     }
                 }

@@ -99,7 +99,7 @@ public class ParseTreeNode
         for(int i = 0; i < indentation; i++)
             str += (((i & 1) == 1) ? "__" : ".."); //alternate indentation styles to make it easier for eyes to find all children
 
-        str += nodeType.toString() + " :: " + literalToken;
+        str += nodeType.toString() + ((literalToken == null) ? "" : " :: " + literalToken);
         str += "\n";
 
         for(ParseTreeNode child: children)
