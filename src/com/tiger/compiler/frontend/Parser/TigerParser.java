@@ -35,7 +35,6 @@ public class TigerParser
      * exist in the functionSymbolTable, everything else is in the globalSymbolTable
      */
     private Map<String, Symbol> globalSymbolTable;
-    private Map<String, Map<String, Symbol>> functionSymbolTables;
 
     private ParseTreeNode parseTreeRoot;
     private ParseTreeNode parseTreeFocus;
@@ -48,8 +47,6 @@ public class TigerParser
         globalSymbolTable = new HashMap<>();
         globalSymbolTable.put("int", TypeSymbol.INT);
         globalSymbolTable.put("float", TypeSymbol.FLOAT);
-
-        functionSymbolTables = new HashMap<>();
 
         semanticStack = new Stack<>();
     }
@@ -398,10 +395,5 @@ public class TigerParser
     public Map<String, Symbol> getGlobalSymbolTable()
     {
         return globalSymbolTable;
-    }
-
-    public Map<String, java.util.Map<String, Symbol>> getFunctionSymbolTables()
-    {
-        return functionSymbolTables;
     }
 }

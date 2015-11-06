@@ -33,9 +33,8 @@ public class TigerCompiler
 
         ParseTreeNode parseTreeRoot = parser.getParseTree();
         Map<String, Symbol> globalSymbolTable = parser.getGlobalSymbolTable();
-        Map<String, Map<String, Symbol>> functionSymbolTables = parser.getFunctionSymbolTables();
 
-        TigerSemanticAnalyzer semanticAnalyzer = new TigerSemanticAnalyzer(parseTreeRoot, globalSymbolTable, functionSymbolTables);
+        TigerSemanticAnalyzer semanticAnalyzer = new TigerSemanticAnalyzer(parseTreeRoot, globalSymbolTable);
         String[] errors = semanticAnalyzer.analyze();
 
         Output.debugPrintln("***********SYMBOL TABLE***********");

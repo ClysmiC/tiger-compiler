@@ -10,24 +10,23 @@ import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.VariableSymbol;
 
-import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class TigerSemanticAnalyzer
 {
     private ParseTreeNode parseTreeRoot;
     private Map<String, Symbol> globalSymbolTable;
-    private Map<String, Map<String, Symbol>> functionSymbolTables;
 
     private Map<ParseTreeNode, Map<String, Object>> attributes;
     private List<String> semanticErrors;
 
-    public TigerSemanticAnalyzer(ParseTreeNode parseTreeRoot, Map<String, Symbol> globalSymbolTable,
-                                 Map<String, Map<String, Symbol>> functionSymbolTables)
+    public TigerSemanticAnalyzer(ParseTreeNode parseTreeRoot, Map<String, Symbol> globalSymbolTable)
     {
         this.parseTreeRoot = parseTreeRoot;
         this.globalSymbolTable = globalSymbolTable;
-        this.functionSymbolTables = functionSymbolTables;
 
         attributes = new HashMap<>();
         semanticErrors = new ArrayList<>();
@@ -47,6 +46,15 @@ public class TigerSemanticAnalyzer
         return semanticErrors.toArray(new String[semanticErrors.size()]);
     }
 
+    /**
+     * Recursively walk down the tree and perform semantic analysis for each node.
+     * The general strategy for analyzing a node is as follows:
+     *   - Inherit necessary attributes from parent and assign known attributes to self
+     *   - Recursively analyze children nodes
+     *   - Ensure children nodes are compatible types (when necessary) and follow proper semantics. Assign additional
+     *     attributes to self that are dependent on children node attributes.
+     * @param node
+     */
     private void analyze(ParseTreeNode node)
     {
         //since we are using an empty GrammarSymbol interface to store both Token enums and NonterminalSymbol enums
@@ -67,7 +75,7 @@ public class TigerSemanticAnalyzer
         {
             Output.println("Fatal error: Compiler failed to cast parse tree node type to either a token or nonterminal." +
                     "Perhaps you put semantic actions in your parse tree?");
-            System.exit(0);
+            System.exit(-1);
         }
 
         //I'm 100% sure this could be made more elegant using polymorphism, but lets get it working first.
@@ -185,13 +193,16 @@ public class TigerSemanticAnalyzer
             case "ID_LIST":
             case "ID_LIST_TAIL":
             case "OPTIONAL_INIT":
-            case "FUNC_DECLARATION":
             case "PARAM_LIST":
             case "PARAM_LIST_TAIL":
             case "RET_TYPE":
             case "PARAM":
             case "STAT_SEQ":
             case "STAT_SEQ_CONT":
+            case "INEQUALITY_OP":
+            case "EQUALITY_OP":
+            case "ADD_SUB_OP":
+            case "MUL_DIV_OP":
             {
                 //Initialize your attributes and add them to the map
                 Map<String, Object> myAttributes = new HashMap<>();
@@ -204,6 +215,41 @@ public class TigerSemanticAnalyzer
                     analyze(child);
                 }
 
+            } break;
+
+
+            case "FUNC_DECLARATION":
+            {
+                //<FUNC_DECLARATION> -> FUNCTION ID LPAREN <PARAM_LIST> RPAREN <RET_TYPE> BEGIN <STAT_SEQ> END SEMI
+
+
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                //Analyze children node
+                List<ParseTreeNode> children = node.getChildren();
+
+                for(ParseTreeNode child: children)
+                {
+                    analyze(child);
+                }
+
+                //Assign correct function symbol table to this node, so children node can inherit it
+                String funcId = children.get(1).getLiteralToken();
+
+                if(globalSymbolTable.containsKey(funcId))
+                {
+                    //failing this cast would be an internal compiler error, but i am confident it can't
+                    //happen so I'm not logging it
+                    FunctionSymbol func = (FunctionSymbol)globalSymbolTable.get(funcId);
+                    myAttributes.put("functionSymbolTable", func.getSymbolTable());
+                }
+                else
+                {
+                    Output.println("Internal compiler error: Could not find function \"" + funcId + "\" in symbol table" +
+                            " despite receiving it's name from a function declaration in the parse tree." );
+                    System.exit(-1);
+                }
             } break;
 
             case "STAT":
@@ -319,9 +365,6 @@ public class TigerSemanticAnalyzer
                 if(children.get(0).getNodeType() == NonterminalSymbol.LVALUE_TAIL)
                 {
                     myAttributes.put("isAssignment", true);
-
-                    Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
-                    myAttributes.put("index", lValueTailAttributes.get("index"));
 
                     Map<String, Object> statAssignRhsAttributes = attributes.get(children.get(2));
                     myAttributes.put("type", statAssignRhsAttributes.get("type"));
@@ -501,13 +544,90 @@ public class TigerSemanticAnalyzer
             case "TERM4":
             case "TERM5":
             case "FACTOR":
-            case "INEQUALITY_OP":
-            case "EQUALITY_OP":
-            case "ADD_SUB_OP":
-            case "MUL_DIV_OP":
+
+            //Since these two are basically the same (except tail starts with a comma), share the code between them.
+            //Tail will simply get an offset term of 1 when retrieving child nodes to let it "skip" the comma node
             case "EXPR_LIST":
             case "EXPR_LIST_TAIL":
+            {
+                int offset = 0;
+
+                if(nodeTypeStr.equals("EXPR_LIST_TAIL"))
+                    offset = 1;
+
+                //Assign some attributes to self
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>)parentAttributes.get("functionSymbolTable");
+                myAttributes.put("functionSymbolTable", functionSymbolTable);
+
+                //Analyze children node
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                {
+                    analyze(child);
+                }
+
+                //<EXPR_LIST (TAIL)> -> NULL
+                if(children.isEmpty())
+                {
+                    myAttributes.put("typeList", new ArrayList<TypeSymbol>());
+                }
+                //<EXPR_LIST (TAIL)> -> (COMMA) <EXPR> <EXPR_LIST_TAIL>
+                else
+                {
+                    List<TypeSymbol> typeList = new ArrayList<TypeSymbol>();
+
+                    Map<String, Object> exprAttributes = attributes.get(children.get(0 + offset));
+                    typeList.add((TypeSymbol)exprAttributes.get("type"));
+
+                    Map<String, Object> exprListTailAttributes = attributes.get(children.get(1 + offset));
+                    typeList.addAll((List<TypeSymbol>)exprListTailAttributes.get("typeList"));
+
+                    myAttributes.put("typeList", typeList);
+                }
+
+            } break;
+
             case "LVALUE_TAIL":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                //Analyze children node
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                {
+                    analyze(child);
+                }
+
+                //<LVALUE_TAIL> -> NULL
+                if(children.isEmpty())
+                {
+                    return;
+                }
+                //<LVALUE_TAIL> -> LBRACK <EXPR> RBRACK
+                else
+                {
+                    Map<String, Object> exprAttributes = attributes.get(children.get(1));
+                    TypeSymbol exprType = (TypeSymbol)exprAttributes.get("type");
+
+                    myAttributes.put("type", exprType);
+
+                    if(exprType != TypeSymbol.INT)
+                    {
+                        semanticErrors.add("Arrays must be indexed by type \"int\".");
+                        return;
+                    }
+                }
+
+                Map<String, Object> childAttributes = attributes.get(children.get(0));
+
+                myAttributes.put("type", childAttributes.get("type"));
+            }
+
             case "EXPR_PRIME":
             case "TERM1_PRIME":
             case "TERM2_PRIME":
@@ -558,6 +678,12 @@ public class TigerSemanticAnalyzer
                     }
                 }
             } break;
+
+            default:
+            {
+                Output.println("Internal compiler error. Could not find grammar symbol " + nodeTypeStr + " to semantically analyze.");
+                System.exit(-1);
+            }
         }
     }
 
