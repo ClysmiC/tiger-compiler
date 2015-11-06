@@ -17,7 +17,6 @@ public class ParseTreeNode
     private String literalToken;
 
     private List<ParseTreeNode> children;
-    private ParseTreeAttributes attributes;
 
     private int nextChildToVisit = 0;
 
@@ -42,8 +41,6 @@ public class ParseTreeNode
                     this.children.add(child);
             }
         }
-
-        attributes = new ParseTreeAttributes(null, null, null);
     }
 
     public void setChildren(List<ParseTreeNode> children)
@@ -116,11 +113,6 @@ public class ParseTreeNode
     public GrammarSymbol getNodeType()
     {
         return nodeType;
-    }
-
-    public ParseTreeAttributes getAttributes()
-    {
-        return attributes;
     }
 
     public String getLiteralToken()
