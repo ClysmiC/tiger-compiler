@@ -57,4 +57,14 @@ public class FunctionSymbol extends Symbol
 
         return str;
     }
+
+    public TypeSymbol getReturnType()
+    {
+        return returnType;
+    }
+
+    public List<TypeSymbol> getArgumentList()
+    {
+        return argumentList;
+    }
 }

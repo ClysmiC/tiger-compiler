@@ -5,6 +5,7 @@ import com.tiger.compiler.frontend.GrammarSymbol;
 import com.tiger.compiler.frontend.Token;
 import com.tiger.compiler.frontend.parser.NonterminalSymbol;
 import com.tiger.compiler.frontend.parser.parsetree.ParseTreeNode;
+import com.tiger.compiler.frontend.parser.symboltable.FunctionSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.VariableSymbol;
@@ -286,10 +287,8 @@ public class TigerSemanticAnalyzer
                     {
                         //STAT_ASSIGN_OR_FUNC is a function
 
-                        //this node doesn't know the function id, so it can't determine the return type.
-                        //the _parent_ will read this node's "isAssignment" attribute, and if that is false,
-                        //the parent will know that the id is a function and will be able to assign itself
-                        //a type based on the function's return type
+                        //no semantic action needed. this is simply a function being called for its side-effects...
+                        //nothing is getting assigned or type-checked
 
                         return;
                     }
@@ -327,6 +326,10 @@ public class TigerSemanticAnalyzer
                     Map<String, Object> statAssignRhsAttributes = attributes.get(children.get(2));
                     myAttributes.put("type", statAssignRhsAttributes.get("type"));
                 }
+                else
+                {
+                    myAttributes.put("isAssignment", false);
+                }
 
             } break;
 
@@ -349,9 +352,105 @@ public class TigerSemanticAnalyzer
 
 
                 //Semantic check results of children analyses, and add remaining attributes to self
+                //<STAT_ASSIGN_RHS> -> ID <EXPR_OR_FUNC_END>
+                if(children.get(0).getNodeType() == Token.ID)
+                {
+                    Map<String, Object> exprOrFuncEndAttributes = attributes.get(children.get(1));
 
+                    if((boolean)exprOrFuncEndAttributes.get("isFunction"))
+                    {
+                        //RHS is a function call.
+
+                        String funcId = children.get(0).getLiteralToken();
+
+                        if(!globalSymbolTable.containsKey(funcId))
+                        {
+                            semanticErrors.add("Undeclared identifier \"" + funcId + "\".");
+                            myAttributes.put("type", null);
+                            return;
+                        }
+
+                        //double check that the id they gave us was, in fact, a function
+                        Symbol funcSymbol = globalSymbolTable.get(funcId);
+
+                        if(!(funcSymbol instanceof FunctionSymbol))
+                        {
+                            semanticErrors.add("\"" + funcId + "\" is not a function.");
+                            myAttributes.put("type", null);
+                            return;
+                        }
+
+                        myAttributes.put("type", ((FunctionSymbol)funcSymbol).getReturnType());
+                    }
+                    else
+                    {
+                        //RHS is an expression
+
+                        String varId = children.get(0).getLiteralToken();
+                        TypeSymbol type1;
+
+                        if(functionSymbolTable != null && functionSymbolTable.containsKey(varId))
+                        {
+                            //assume this cast is safe because function symbol table only contains parameters (variables)
+                            type1 = ((VariableSymbol)functionSymbolTable.get(varId)).getType();
+                        }
+                        else if(globalSymbolTable.containsKey(varId))
+                        {
+                            Symbol symbol = globalSymbolTable.get(varId);
+
+                            if(symbol instanceof VariableSymbol)
+                            {
+                                type1 = ((VariableSymbol)symbol).getType();
+                            }
+                            else
+                            {
+                                semanticErrors.add("Cannot begin expression with non-variable");
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            semanticErrors.add("Undeclared identifier \"" + varId + "\".");
+                            myAttributes.put("type", null);
+                            return;
+                        }
+
+                        TypeSymbol type2 = (TypeSymbol)exprOrFuncEndAttributes.get("type");
+                        TypeSymbol resultType = inferType(type1, type2);
+
+                        if(resultType != null)
+                        {
+                            myAttributes.put("type", resultType);
+                        }
+                        else
+                        {
+                            semanticErrors.add("Operation between incompatible types: \"" + type1 + "\" and \"" + type2 + "\"");
+                            return;
+                        }
+                    }
+                }
+                //<STAT_ASSIGN_RHS> -> LPAREN <EXPR> RPAREN <PRIME_TERM>
+                else if(children.get(0).getNodeType() == Token.LPAREN)
+                {
+                    Map<String, Object> exprAttributes = attributes.get(children.get(1));
+                    Map<String, Object> primeTermAttributes = attributes.get(children.get(3));
+
+                    TypeSymbol type1 = (TypeSymbol)exprAttributes.get("type");
+                    TypeSymbol type2 = (TypeSymbol)exprAttributes.get("type");
+                    TypeSymbol resultType = inferType(type1, type2);
+
+                    if(resultType != null)
+                    {
+                        myAttributes.put("type", resultType);
+                    }
+                    else
+                    {
+                        semanticErrors.add("Operation between incompatible types: \"" + type1 + "\" and \"" + type2 + "\"");
+                        return;
+                    }
+                }
                 //<STAT_ASSIGN_RHS> -> <CONST> <PRIME_TERM>
-                if(children.get(0).getNodeType() == NonterminalSymbol.CONST)
+                else if(children.get(0).getNodeType() == NonterminalSymbol.CONST)
                 {
                     Map<String, Object> constAttributes = attributes.get(children.get(0));
                     TypeSymbol constType = (TypeSymbol)constAttributes.get("type");
@@ -374,6 +473,9 @@ public class TigerSemanticAnalyzer
             } break;
 
             case "EXPR_OR_FUNC_END":
+            {
+
+            }
             case "FUNC_CALL_END":
             case "IF_STAT":
             case "IF_END":
