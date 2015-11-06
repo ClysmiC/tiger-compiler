@@ -519,10 +519,10 @@ public class TigerSemanticAnalyzer
             {
 
             }
+
             case "FUNC_CALL_END":
             case "IF_STAT":
             case "IF_END":
-            case "EXPR":
 
             case "CONST":
             {
@@ -538,12 +538,46 @@ public class TigerSemanticAnalyzer
 
             } break;
 
+
+            case "FACTOR":
+
+
+
+            case "EXPR":
             case "TERM1":
             case "TERM2":
             case "TERM3":
             case "TERM4":
             case "TERM5":
-            case "FACTOR":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                //Analyze children node
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                {
+                    analyze(child);
+                }
+
+                Map<String, Object> term1Attributes = attributes.get(children.get(0));
+                Map<String, Object> term2Attributes = attributes.get(children.get(1));
+
+                TypeSymbol type1 = (TypeSymbol)term1Attributes.get("type");
+                TypeSymbol type2 = (TypeSymbol)term2Attributes.get("type");
+                TypeSymbol resultType = inferType(type1, type2);
+
+                if(resultType != null)
+                {
+                    myAttributes.put("type", resultType);
+                }
+                else
+                {
+                    semanticErrors.add("Operation between incompatible types: \"" + type1 + "\" and \"" + type2 + "\"");
+                    return;
+                }
+            } break;
+
 
             //Since these two are basically the same (except tail starts with a comma), share the code between them.
             //Tail will simply get an offset term of 1 when retrieving child nodes to let it "skip" the comma node
