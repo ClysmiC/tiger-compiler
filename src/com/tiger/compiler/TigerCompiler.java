@@ -4,6 +4,7 @@ import com.tiger.compiler.frontend.parser.TigerParser;
 import com.tiger.compiler.frontend.parser.parsetree.ParseTreeNode;
 import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.scanner.TigerScanner;
+import com.tiger.compiler.frontend.semanticanalysis.TigerSemanticAnalyzer;
 
 import java.util.Map;
 
@@ -34,6 +35,9 @@ public class TigerCompiler
         Map<String, Symbol> globalSymbolTable = parser.getGlobalSymbolTable();
         Map<String, Map<String, Symbol>> functionSymbolTables = parser.getFunctionSymbolTables();
 
+        TigerSemanticAnalyzer semanticAnalyzer = new TigerSemanticAnalyzer(parseTreeRoot, globalSymbolTable, functionSymbolTables);
+        String[] errors = semanticAnalyzer.analyze();
+
         Output.debugPrintln("***********SYMBOL TABLE***********");
         //print out the entire symbol table (for testing)
         for(String symbolId: globalSymbolTable.keySet())
@@ -43,5 +47,11 @@ public class TigerCompiler
 
         Output.debugPrintln("\n\n\n***********PARSE TREE***********");
         Output.debugPrintln(parseTreeRoot.nodeToString(0));
+
+        Output.debugPrintln("\n\n\n***********SEMANTIC ERRORS***********");
+        for(String error: errors)
+        {
+           Output.println(error);
+        }
     }
 }
