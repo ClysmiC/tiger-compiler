@@ -4,6 +4,11 @@ let
         /*var x : int := 0;*/
         var y : MyInt := 0;
         var z : float := 0.0;
+
+        function multiplyInt ( n : int , n2 : int) : int
+        begin
+                return n * 3.1;
+        end;
 in
         z := y + y;
 end
