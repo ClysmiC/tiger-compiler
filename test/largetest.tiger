@@ -1,7 +1,9 @@
 let
+		type MyInt = int;
+
         /*var x : int := 0;*/
-        var y : int := 0;
+        var y : MyInt := 0;
         var z : float := 0.0;
 in
-        z := y < 4.0;
+        z := y + y;
 end

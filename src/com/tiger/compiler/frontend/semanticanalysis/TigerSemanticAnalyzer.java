@@ -368,7 +368,8 @@ public class TigerSemanticAnalyzer
             }
             break;
 
-            case "STAT_ASSIGN_OR_FUNC": {
+            case "STAT_ASSIGN_OR_FUNC":
+            {
                 //Assign some attributes to self
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
@@ -405,7 +406,8 @@ public class TigerSemanticAnalyzer
             }
             break;
 
-            case "STAT_ASSIGN_RHS": {
+            case "STAT_ASSIGN_RHS":
+            {
                 //Assign some attributes to self
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
@@ -414,16 +416,22 @@ public class TigerSemanticAnalyzer
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
                 myAttributes.put("functionSymbolTable", functionSymbolTable);
 
-                //Analyze children node
+                //need to store results of some children before analyzing future children,
+                //so defer child analysis to the individual cases STAT_ASSIGN_RHS can expand to
                 List<ParseTreeNode> children = node.getChildren();
-                for (ParseTreeNode child : children) {
-                    analyze(child);
-                }
+
 
 
                 //Semantic check results of children analyses, and add remaining attributes to self
                 //<STAT_ASSIGN_RHS> -> ID <EXPR_OR_FUNC_END>
                 if (children.get(0).getNodeType() == Token.ID) {
+                    analyze(children.get(0));
+                    Map<String, Object> idAttributes = attributes.get(children.get(0));
+                    TypeSymbol idType = (TypeSymbol)idAttributes.get("type");
+                    myAttributes.put("type", idType);
+
+                    analyze(children.get(1));
+
                     Map<String, Object> exprOrFuncEndAttributes = attributes.get(children.get(1));
 
                     if ((boolean) exprOrFuncEndAttributes.get("isFunction")) {
@@ -454,84 +462,89 @@ public class TigerSemanticAnalyzer
                     } else {
                         //RHS is an expression
 
+                        //update type based on expression
+                        myAttributes.put("type", exprOrFuncEndAttributes.get("type"));
+
                         String varId = children.get(0).getLiteralToken();
-                        boolean indexedIntoArray = !((boolean) exprOrFuncEndAttributes.get("isLValueTailNull"));
 
-                        TypeSymbol idType;
-
-                        if (functionSymbolTable != null && functionSymbolTable.containsKey(varId)) {
-                            //assume this cast is safe because function symbol table only contains parameters (variables)
-                            idType = ((VariableSymbol) functionSymbolTable.get(varId)).getType();
-                        } else if (globalSymbolTable.containsKey(varId)) {
+                        if (functionSymbolTable != null && functionSymbolTable.containsKey(varId))
+                        {
+                            //all good
+                        }
+                        else if (globalSymbolTable.containsKey(varId))
+                        {
                             Symbol symbol = globalSymbolTable.get(varId);
 
-                            if (symbol instanceof VariableSymbol) {
-                                idType = ((VariableSymbol) symbol).getType();
-
-                                if (indexedIntoArray && !idType.isArrayOfBaseType()) {
-                                    semanticErrors.add("Cannot index into variables whose type is not an array.");
-                                    return;
-                                }
-
-                                if (indexedIntoArray) {
-                                    idType = idType.getBaseType();
-                                    //eg, the type of x[5] would be int in the following code
-                                    /**
-                                     * type ArrayInt = array [100] of int;
-                                     * var x : ArrayInt;
-                                     */
-                                }
-                            } else {
+                            if (symbol instanceof VariableSymbol)
+                            {
+                                //all good
+                            }
+                            else
+                            {
                                 semanticErrors.add("Cannot begin expression with non-variable");
                                 return;
                             }
-                        } else {
+                        }
+                        else
+                        {
                             semanticErrors.add("Undeclared identifier \"" + varId + "\".");
                             myAttributes.put("type", null);
-                            return;
-                        }
-
-                        TypeSymbol exprOrFuncEndType = (TypeSymbol) exprOrFuncEndAttributes.get("type");
-                        TypeSymbol resultType = inferType(idType, exprOrFuncEndType);
-
-                        if (resultType != null) {
-                            myAttributes.put("type", resultType);
-                        } else {
-                            semanticErrors.add("Operation between incompatible types: \"" + idType.getName() + "\" and \"" + exprOrFuncEndType.getName() + "\"");
                             return;
                         }
                     }
                 }
                 //<STAT_ASSIGN_RHS> -> LPAREN <EXPR> RPAREN <PRIME_TERM>
-                else if (children.get(0).getNodeType() == Token.LPAREN) {
+                else if (children.get(0).getNodeType() == Token.LPAREN)
+                {
+                    analyze(children.get(0));
+                    analyze(children.get(1));
+                    analyze(children.get(2));
+
                     Map<String, Object> exprAttributes = attributes.get(children.get(1));
+                    TypeSymbol myType = (TypeSymbol)exprAttributes.get("type");
+
+                    myAttributes.put("type", myType);
+
+                    analyze(children.get(3));
                     Map<String, Object> primeTermAttributes = attributes.get(children.get(3));
+                    TypeSymbol primeTermType = (TypeSymbol) primeTermAttributes.get("type");
 
-                    TypeSymbol type1 = (TypeSymbol) exprAttributes.get("type");
-                    TypeSymbol type2 = (TypeSymbol) exprAttributes.get("type");
-                    TypeSymbol resultType = inferType(type1, type2);
+                    TypeSymbol resultType = inferType(myType, primeTermType);
 
-                    if (resultType != null) {
+                    if (resultType != null)
+                    {
                         myAttributes.put("type", resultType);
-                    } else {
-                        semanticErrors.add("Operation between incompatible types: \"" + type1.getName() + "\" and \"" + type2.getName() + "\"");
+                    }
+                    else
+                    {
+                        semanticErrors.add("Operation between incompatible types: \"" + myType.getName() +
+                                "\" and \"" + primeTermType.getName() + "\"");
                         return;
                     }
                 }
                 //<STAT_ASSIGN_RHS> -> <CONST> <PRIME_TERM>
-                else if (children.get(0).getNodeType() == NonterminalSymbol.CONST) {
+                else if (children.get(0).getNodeType() == NonterminalSymbol.CONST)
+                {
+                    analyze(children.get(0));
                     Map<String, Object> constAttributes = attributes.get(children.get(0));
-                    TypeSymbol constType = (TypeSymbol) constAttributes.get("type");
+                    TypeSymbol myType = (TypeSymbol) constAttributes.get("type");
+
+                    myAttributes.put("type", myType);
+
+                    analyze(children.get(1));
 
                     Map<String, Object> primeTermAttributes = attributes.get(children.get(1));
                     TypeSymbol primeTermType = (TypeSymbol) primeTermAttributes.get("type");
 
-                    TypeSymbol resultType = inferType(constType, primeTermType);
+                    TypeSymbol resultType = inferType(myType, primeTermType);
 
-                    if (resultType != null) {
+                    if (resultType != null)
+                    {
                         myAttributes.put("type", resultType);
-                    } else {
-                        semanticErrors.add("Operation between incompatible types: \"" + constType.getName() +
+                    }
+                    else
+                    {
+                        semanticErrors.add("Operation between incompatible types: \"" + myType.getName() +
                                 "\" and \"" + primeTermType.getName() + "\"");
                         return;
                     }
@@ -539,7 +552,8 @@ public class TigerSemanticAnalyzer
             }
             break;
 
-            case "EXPR_OR_FUNC_END": {
+            case "EXPR_OR_FUNC_END":
+            {
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
 
@@ -547,23 +561,55 @@ public class TigerSemanticAnalyzer
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
                 myAttributes.put("functionSymbolTable", functionSymbolTable);
 
-                //Analyze children node
                 List<ParseTreeNode> children = node.getChildren();
-                for (ParseTreeNode child : children) {
-                    analyze(child);
-                }
+
+                //let each case control analysis, so they can store intermediate attributes
 
                 //<EXPR_OR_FUNC_END> -> <LVALUE_TAIL> <PRIME_TERM>
-                if (children.get(0).getNodeType() == NonterminalSymbol.LVALUE_TAIL) {
-                    Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
-                    Map<String, Object> primeTermAttributes = attributes.get(children.get(1));
-
+                if (children.get(0).getNodeType() == NonterminalSymbol.LVALUE_TAIL)
+                {
                     myAttributes.put("isFunction", false);
-                    myAttributes.put("isLValueTailNull", lValueTailAttributes.get("isNull"));
-                    myAttributes.put("type", primeTermAttributes.get("type"));
+                    TypeSymbol myType = (TypeSymbol)parentAttributes.get("type");
+
+                    analyze(children.get(0));
+
+                    Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
+                    boolean indexedIntoArray = !(boolean)lValueTailAttributes.get("isNull");
+
+                    if (indexedIntoArray && !myType.isArrayOfBaseType())
+                    {
+                        semanticErrors.add("Cannot index into variables whose type is not an array.");
+                        return;
+                    }
+
+                    if (indexedIntoArray)
+                    {
+                        myType = myType.getBaseType();
+                        //eg, the type of x[5] would be int in the following code
+                        /**
+                         * type ArrayInt = array [100] of int;
+                         * var x : ArrayInt;
+                         */
+                    }
+
+                    myAttributes.put("type", myType);
+
+                    analyze(children.get(1));
+
+                    Map<String, Object> primeTermAttributes = attributes.get(children.get(1));
+                    TypeSymbol primeTermType = (TypeSymbol)primeTermAttributes.get("type");
+
+                    myType = inferType(myType, primeTermType);
+                    myAttributes.put("type", myType);
                 }
                 //<EXPR_OR_FUNC_END> -> <FUNC_CALL_END>
-                else {
+                else
+                {
+                    for(ParseTreeNode child: children)
+                    {
+                        analyze(child);
+                    }
+
                     Map<String, Object> funcCallEndAttributes = attributes.get(children.get(0));
 
                     myAttributes.put("isFunction", true);
@@ -573,7 +619,8 @@ public class TigerSemanticAnalyzer
             }
             break;
 
-            case "FUNC_CALL_END": {
+            case "FUNC_CALL_END":
+            {
                 //<FUNC_CALL_END> -> LPAREN <EXPR_LIST> RPAREN
 
                 Map<String, Object> myAttributes = new HashMap<>();
@@ -597,12 +644,14 @@ public class TigerSemanticAnalyzer
             break;
 
             case "IF_STAT":
-            case "IF_END": {
+            case "IF_END":
+            {
 
             }
             break;
 
-            case "CONST": {
+            case "CONST":
+            {
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
 
@@ -617,7 +666,8 @@ public class TigerSemanticAnalyzer
             break;
 
 
-            case "FACTOR": {
+            case "FACTOR":
+            {
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
 
