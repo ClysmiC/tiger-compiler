@@ -15,5 +15,10 @@ public enum SemanticAction implements GrammarSymbol
 
     PUT_TYPE_TABLE,
     PUT_VARS_TABLE,
-    PUT_FUNC_TABLE
+    PUT_FUNC_TABLE,
+
+    //makes sure you don't use break when not in a loop
+    LOOP_ENTER,
+    LOOP_EXIT,
+    LOOP_BREAK
 }

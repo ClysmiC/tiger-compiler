@@ -27,6 +27,7 @@ public class TigerParser
     private float latestFloatLit;
 
     private Stack<Object> semanticStack;
+    int loopLevel;
 
     /**
      * Because of the way Tiger is structured, everything is global, EXCEPT
@@ -48,6 +49,7 @@ public class TigerParser
         globalSymbolTable.put("float", TypeSymbol.FLOAT);
 
         semanticStack = new Stack<>();
+        loopLevel = 0;
     }
 
     public void parse()
@@ -341,6 +343,24 @@ public class TigerParser
                             }
                         }
                     } break;
+
+                    case LOOP_ENTER:
+                    {
+                        loopLevel++;
+                    } break;
+
+                    case LOOP_EXIT:
+                    {
+                        loopLevel--;
+                    } break;
+
+                    case LOOP_BREAK:
+                    {
+                        if (loopLevel == 0)
+                        {
+                            Output.println("\"break\" may only be used within a loop.");
+                        }
+                    }
                 }
 
                 stack.pop();
