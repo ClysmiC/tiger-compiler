@@ -5,9 +5,14 @@ let
         var y : MyInt := 0;
         var z : float := 0.0;
 
-        function multiplyInt ( n : int , n2 : int) : int
+        function areIntsEqual ( n : int , n2 : int) : int
         begin
-                return n * 3.1;
+            return n = n2;
+        end;
+
+        function areFloatsEqual( n : float, n2 : float) : int
+        begin
+        	return n = n2;
         end;
 in
         z := y + y;

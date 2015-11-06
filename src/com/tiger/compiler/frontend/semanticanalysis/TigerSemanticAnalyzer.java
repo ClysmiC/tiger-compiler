@@ -954,9 +954,12 @@ public class TigerSemanticAnalyzer
                 Map<String, Object> primeTermAttributes = attributes.get(children.get(1));
                 TypeSymbol primeTermType = (TypeSymbol)primeTermAttributes.get("type");
 
-                myType = inferType(myType, primeTermType);
-
-                myAttributes.put("type", myType);
+                //since prime term used myType when determining its type, we can
+                //just grab the resulting type (unless the prime term was empty)
+                if(primeTermType != null)
+                {
+                    myAttributes.put("type", primeTermType);
+                }
             }
             break;
 
@@ -1000,7 +1003,6 @@ public class TigerSemanticAnalyzer
 
                 if (myType != null)
                 {
-                    myAttributes.put("type", myType);
 
                     // +, -, *, /
                     if (nodeTypeStr.contains("4") || nodeTypeStr.contains("5"))
@@ -1019,6 +1021,8 @@ public class TigerSemanticAnalyzer
                             semanticErrors.add("= or <> require operands of the same type.");
                             return;
                         }
+
+                        myType = TypeSymbol.INT; //comparisons always return 0, 1
                     }
                     // <, <=, >, >=
                     else if (nodeTypeStr.contains("2"))
@@ -1028,6 +1032,8 @@ public class TigerSemanticAnalyzer
                             semanticErrors.add("<, <=, >, >= require operands that are both ints or both floats.");
                             return;
                         }
+
+                        myType = TypeSymbol.INT; //comparisons always return 0, 1
                     }
                     //AND, OR
                     else
@@ -1038,6 +1044,8 @@ public class TigerSemanticAnalyzer
                             return;
                         }
                     }
+
+                    myAttributes.put("type", myType);
                 }
                 else
                 {
