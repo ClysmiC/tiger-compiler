@@ -10,15 +10,15 @@ import java.util.Map;
 public class FunctionSymbol extends Symbol
 {
     private TypeSymbol returnType;
-    private List<TypeSymbol> argumentList;
+    private List<TypeSymbol> parameterList;
 
     private Map<String, Symbol> functionSymbolTable; //maps variable names to their VariableSymbol
 
-    public FunctionSymbol(String name, TypeSymbol returnType, List<TypeSymbol> argumentList)
+    public FunctionSymbol(String name, TypeSymbol returnType, List<TypeSymbol> parameterList)
     {
         super(name);
         this.returnType = returnType;
-        this.argumentList = argumentList;
+        this.parameterList = parameterList;
 
         functionSymbolTable = new HashMap<>();
     }
@@ -36,7 +36,7 @@ public class FunctionSymbol extends Symbol
         str += "\nReturns: " + ((returnType == null) ? "[void]" : returnType.getName());
         str += "\nParams: (";
 
-        for(TypeSymbol argumentType: argumentList)
+        for(TypeSymbol argumentType: parameterList)
         {
             str += argumentType.getName() + ", ";
         }
@@ -63,8 +63,8 @@ public class FunctionSymbol extends Symbol
         return returnType;
     }
 
-    public List<TypeSymbol> getArgumentList()
+    public List<TypeSymbol> getParameterList()
     {
-        return argumentList;
+        return parameterList;
     }
 }
