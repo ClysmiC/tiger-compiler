@@ -390,6 +390,48 @@ public class TigerSemanticAnalyzer
                         }
                     }
                 }
+                //<STAT> -> WHILE <EXPR> DO <STAT_SEQ> ENDDO SEMI
+                else if (children.get(0).getNodeType() == Token.WHILE)
+                {
+                    Map<String, Object> exprAttributes = attributes.get(children.get(1));
+                    TypeSymbol exprType = (TypeSymbol)exprAttributes.get("type");
+
+                    if(exprType != TypeSymbol.INT)
+                    {
+                        semanticErrors.add("While loop condition must resolve to type int.");
+                        return;
+                    }
+                }
+                //<STAT> -> FOR ID ASSIGN <EXPR> TO <EXPR> DO <STAT_SEQ> ENDDO SEMI
+                else if (children.get(0).getNodeType() == Token.FOR)
+                {
+                    Map<String, Object> idAttributes = attributes.get(children.get(1));
+                    TypeSymbol idType = (TypeSymbol)idAttributes.get("type");
+
+                    Map<String, Object> expr1Attributes = attributes.get(children.get(3));
+                    TypeSymbol expr1Type = (TypeSymbol)expr1Attributes.get("type");
+
+                    Map<String, Object> expr2Attributes = attributes.get(children.get(5));
+                    TypeSymbol expr2Type = (TypeSymbol)expr2Attributes.get("type");
+
+                    if(idType != TypeSymbol.INT)
+                    {
+                        semanticErrors.add("For loop variable must be type int.");
+                        return;
+                    }
+
+                    if(expr1Type != TypeSymbol.INT || expr2Type != TypeSymbol.INT)
+                    {
+                        semanticErrors.add("For loop upper and lower bound expressions must resolve to int.");
+                        return;
+                    }
+                }
+                //<STAT> -> BREAK SEMI
+                //<STAT> -> <IF_STAT_IF_END> SEMI
+                else
+                {
+
+                }
             } break;
 
             case "STAT_ASSIGN_OR_FUNC":

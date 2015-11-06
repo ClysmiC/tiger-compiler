@@ -4,6 +4,9 @@ let
         /*var x : int := 0;*/
         var y : int := 0;
         var z : int := 0;
+        var loopCounter : int;
+
+        var afloat : float;
 
         var buffer : ArrayInt;
 
@@ -42,6 +45,16 @@ let
         	return n = n2;
         end;
 in
+		for loopCounter := (0.5 = 0.1) to 10 + 5
+		do
+			z := z + 1;
+
+			if(z > 0)
+			then
+				break;
+			endif;
+
+		enddo;
+
         z := y + y;
-        break;
 end
