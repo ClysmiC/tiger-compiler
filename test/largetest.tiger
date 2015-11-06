@@ -20,6 +20,18 @@ let
         	return buffer;
         end;
 
+        function fillArrayNoRetVal( int1 : int, int2: int)
+        begin
+        	buffer[0] := int1;
+        	buffer[1] := int2;
+
+        	/*
+        		Unable to just type "return;" ...
+        		return must be followed by expression (according to grammar).
+        		Thus, void functions semantically can't have a return token.
+        	*/
+        end;
+
         function areIntsEqual ( n : int , n2 : int) : int
         begin
             return n = n2;

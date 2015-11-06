@@ -200,24 +200,21 @@ public class TigerSemanticAnalyzer
                     myType = ((TypeSymbol) symbol);
 
                 myAttributes.put("type", myType);
-            }
-            break;
+            } break;
 
             case "INTLIT":
             {
                 Map<String, Object> myAttributes = new HashMap<>();
                 myAttributes.put("type", TypeSymbol.INT);
                 attributes.put(node, myAttributes);
-            }
-            break;
+            } break;
 
             case "FLOATLIT":
             {
                 Map<String, Object> myAttributes = new HashMap<>();
                 myAttributes.put("type", TypeSymbol.FLOAT);
                 attributes.put(node, myAttributes);
-            }
-            break;
+            } break;
 
 
             /**************************
@@ -268,8 +265,7 @@ public class TigerSemanticAnalyzer
                     analyze(child);
                 }
 
-            }
-            break;
+            } break;
 
 
             case "FUNC_DECLARATION":
@@ -313,8 +309,7 @@ public class TigerSemanticAnalyzer
                 }
 
 
-            }
-            break;
+            } break;
 
             case "STAT":
             {
@@ -383,12 +378,19 @@ public class TigerSemanticAnalyzer
 
                     if(!isTypeCompatibleAssignment(expectedReturnType, actualReturnType))
                     {
-                        semanticErrors.add("Function \"" + functionName + "\" must return type \"" + expectedReturnType.getName() + "\".");
-                        return;
+                        if(expectedReturnType == null)
+                        {
+                            semanticErrors.add("Cannot return value in void function \"" + functionName + "\".");
+                            return;
+                        }
+                        else
+                        {
+                            semanticErrors.add("Function \"" + functionName + "\" must return type \"" + expectedReturnType.getName() + "\".");
+                            return;
+                        }
                     }
                 }
-            }
-            break;
+            } break;
 
             case "STAT_ASSIGN_OR_FUNC":
             {
@@ -455,8 +457,7 @@ public class TigerSemanticAnalyzer
                     List<TypeSymbol> typeList = (List<TypeSymbol>) funcCallEndAttributes.get("typeList");
                     myAttributes.put("typeList", typeList);
                 }
-            }
-            break;
+            } break;
 
             case "STAT_ASSIGN_RHS":
             {
@@ -606,8 +607,7 @@ public class TigerSemanticAnalyzer
                         return;
                     }
                 }
-            }
-            break;
+            } break;
 
             case "EXPR_OR_FUNC_END":
             {
@@ -673,8 +673,7 @@ public class TigerSemanticAnalyzer
                     myAttributes.put("typeList", funcCallEndAttributes.get("typeList"));
                 }
 
-            }
-            break;
+            } break;
 
             case "FUNC_CALL_END":
             {
@@ -698,15 +697,40 @@ public class TigerSemanticAnalyzer
 
                 myAttributes.put("typeList", exprListAttributes.get("typeList"));
 
-            }
-            break;
+            } break;
 
             case "IF_STAT":
+            {
+                //<IF_STAT> -> IF <EXPR> THEN <STAT_SEQ>
+
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
+                myAttributes.put("functionSymbolTable", functionSymbolTable);
+
+                //Analyze children node
+                List<ParseTreeNode> children = node.getChildren();
+                for (ParseTreeNode child : children)
+                {
+                    analyze(child);
+                }
+
+                Map<String, Object> exprAttributes = attributes.get(children.get(1));
+                TypeSymbol exprType = (TypeSymbol)exprAttributes.get("type");
+
+                if(exprType != TypeSymbol.INT)
+                {
+                    semanticErrors.add("If statement condition must resolve to type int.");
+                    return;
+                }
+            } break;
+
             case "IF_END":
             {
 
-            }
-            break;
+            } break;
 
             case "CONST":
             {
@@ -720,8 +744,7 @@ public class TigerSemanticAnalyzer
 
                 myAttributes.put("type", childAttributes.get("type"));
 
-            }
-            break;
+            } break;
 
 
             case "FACTOR":
@@ -809,8 +832,7 @@ public class TigerSemanticAnalyzer
 
                     myAttributes.put("type", exprType);
                 }
-            }
-            break;
+            } break;
 
 
             //Since these four are basically the same (except tails starts with a comma), share the code between them.
@@ -861,8 +883,7 @@ public class TigerSemanticAnalyzer
                     myAttributes.put("typeList", typeList);
                 }
 
-            }
-            break;
+            } break;
 
             case "LVALUE_TAIL":
             {
@@ -897,8 +918,7 @@ public class TigerSemanticAnalyzer
                         return;
                     }
                 }
-            }
-            break;
+            } break;
 
             case "PRIME_TERM":
             {
@@ -944,8 +964,7 @@ public class TigerSemanticAnalyzer
                 {
                     myAttributes.put("type", primeTermType);
                 }
-            }
-            break;
+            } break;
 
             case "EXPR_PRIME":
             case "TERM1_PRIME":
@@ -1046,8 +1065,7 @@ public class TigerSemanticAnalyzer
                 myType = inferType(myType, primeTermTailType);
 
                 myAttributes.put("type", myType);
-            }
-            break;
+            } break;
 
             default:
             {
