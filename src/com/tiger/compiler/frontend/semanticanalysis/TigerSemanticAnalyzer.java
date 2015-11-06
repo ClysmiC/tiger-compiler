@@ -335,82 +335,39 @@ public class TigerSemanticAnalyzer
 
                 //Analyze children node
                 List<ParseTreeNode> children = node.getChildren();
+
                 for (ParseTreeNode child : children)
                 {
                     analyze(child);
+
+                    //after analyzing first child in STAT -> ID <STAT_ASSIGN_OR_FUNC> SEMI
+                    //store the id's type
+                    if(child == children.get(0) && child.getNodeType() == Token.ID)
+                    {
+                        Map<String, Object> idAttributes = attributes.get(children.get(0));
+                        TypeSymbol idType = (TypeSymbol)idAttributes.get("type");
+
+                        myAttributes.put("type", idType);
+                    }
                 }
 
-
-                //Semantic check results of children analyses, and add remaining attributes to self
 
                 //<STAT> -> ID <STAT_ASSIGN_OR_FUNC> SEMI
                 if (children.get(0).getNodeType() == Token.ID)
                 {
-                    String childId = children.get(0).getLiteralToken();
-
-                    Symbol childSymbol;
-
-                    if (functionSymbolTable != null && functionSymbolTable.containsKey(childId))
-                    {
-                        childSymbol = functionSymbolTable.get(childId);
-                    }
-                    else if (globalSymbolTable.containsKey(childId))
-                    {
-                        childSymbol = globalSymbolTable.get(childId);
-                    }
-                    else
-                    {
-                        //error was added when id was being analyzed
-                        //doesn't make sense to try to type match a rhs to a non-existant variable, just return
-                        return;
-                    }
-
                     ParseTreeNode statAssignOrFuncNode = children.get(1);
                     Map<String, Object> statAssignOrFuncAttributes = attributes.get(statAssignOrFuncNode);
 
-                    if ((boolean) statAssignOrFuncAttributes.get("isAssignment"))
-                    {
-                        //type match lhs and rhs
-                        TypeSymbol lhsType;
-
-                        if (childSymbol instanceof VariableSymbol)
-                        {
-                            lhsType = ((VariableSymbol) childSymbol).getType();
-                        }
-                        else
-                        {
-                            semanticErrors.add("Cannot assign values to function or type identifier.");
-                            return;
-                        }
-
-                        TypeSymbol rhsType = (TypeSymbol) statAssignOrFuncAttributes.get("type");
-
-                        if (isTypeCompatibleAssignment(lhsType, rhsType))
-                        {
-                            //compatible!
-                            return;
-                        }
-                        else
-                        {
-                            semanticErrors.add("Could not assign type " + rhsType.getName() + " to variable " + childId
-                                    + " of type " + lhsType.getName());
-
-                            return;
-                        }
-                    }
-                    else
+                    if (! (boolean) statAssignOrFuncAttributes.get("isAssignment"))
                     {
                         //STAT_ASSIGN_OR_FUNC is a function
                         List<TypeSymbol> arguments = (List<TypeSymbol>) statAssignOrFuncAttributes.get("typeList");
+                        String funcId = children.get(0).getLiteralToken();
+                        Symbol symbol = globalSymbolTable.get(funcId);
 
-                        if (childSymbol instanceof FunctionSymbol)
+                        if (!(symbol instanceof FunctionSymbol))
                         {
-                            FunctionSymbol function = (FunctionSymbol) childSymbol;
-                            verifyFunctionParameters(function, arguments);
-                        }
-                        else
-                        {
-                            semanticErrors.add("Cannot call \"" + childId + "\" as if it were a function.");
+                            semanticErrors.add("Cannot call \"" + funcId + "\" as if it were a function.");
                             return;
                         }
                     }
@@ -458,8 +415,36 @@ public class TigerSemanticAnalyzer
                 {
                     myAttributes.put("isAssignment", true);
 
+                    Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
+                    TypeSymbol myType = (TypeSymbol)parentAttributes.get("type");
+
+                    boolean indexedIntoArray = !(boolean)lValueTailAttributes.get("isNull");
+
+                    if (indexedIntoArray && !myType.isArrayOfBaseType())
+                    {
+                        semanticErrors.add("Cannot index into variables whose type is not an array.");
+                        return;
+                    }
+
+                    if (indexedIntoArray)
+                    {
+                        myType = myType.getBaseType();
+                        //eg, the type of x[5] would be int in the following code
+                        /**
+                         * type ArrayInt = array [100] of int;
+                         * var x : ArrayInt;
+                         */
+                    }
+
+                    myAttributes.put("type", myType);
+
                     Map<String, Object> statAssignRhsAttributes = attributes.get(children.get(2));
-                    myAttributes.put("type", statAssignRhsAttributes.get("type"));
+                    TypeSymbol statAssignRhsType = (TypeSymbol)statAssignRhsAttributes.get("type");
+
+                    if(!isTypeCompatibleAssignment(myType, statAssignRhsType))
+                    {
+                        semanticErrors.add("Cannot assign type " + statAssignRhsType.getName() + " to variable of type " + myType.getName());
+                    }
                 }
                 //<STAT_ASSIGN_OR_FUNC> -><FUNC_CALL_END>
                 else
@@ -470,7 +455,6 @@ public class TigerSemanticAnalyzer
                     List<TypeSymbol> typeList = (List<TypeSymbol>) funcCallEndAttributes.get("typeList");
                     myAttributes.put("typeList", typeList);
                 }
-
             }
             break;
 
@@ -924,7 +908,7 @@ public class TigerSemanticAnalyzer
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
                 myAttributes.put("type", null);
-            }
+            } break;
 
             case "EXPR":
             case "TERM1":

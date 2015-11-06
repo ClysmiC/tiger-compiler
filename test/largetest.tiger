@@ -1,9 +1,24 @@
 let
-		type MyInt = int;
+		type ArrayInt = array[2] of int;
 
         /*var x : int := 0;*/
-        var y : MyInt := 0;
-        var z : float := 0.0;
+        var y : int := 0;
+        var z : int := 0;
+
+        var buffer : ArrayInt;
+
+        function fillArray( int1 : int, int2 : int) : ArrayInt
+        begin
+        	/* 	
+        		Can assign base type to indices of array
+        		Can only assign actual type to an unindexed variable.
+        	*/
+        	buffer[0] := int1;
+        	buffer[1] := int2;
+        	buffer := buffer;
+
+        	return buffer;
+        end;
 
         function areIntsEqual ( n : int , n2 : int) : int
         begin
