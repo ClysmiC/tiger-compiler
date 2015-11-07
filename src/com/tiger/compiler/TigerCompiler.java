@@ -57,7 +57,7 @@ public class TigerCompiler
             for(String codeLine: code)
             {
                 //Only print comments in debug mode
-                if(codeLine.startsWith("#"))
+                if(codeLine.trim().startsWith("#"))
                 {
                     if(codeLine.length() == 1)
                         Output.debugPrintln("");

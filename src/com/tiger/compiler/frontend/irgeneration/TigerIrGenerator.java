@@ -217,6 +217,10 @@ public class TigerIrGenerator
             case "STAT_SEQ_CONT":
             case "TYPE_SYMBOL":
             case "STAT":
+            case "INEQUALITY_OP":
+            case "EQUALITY_OP":
+            case "ADD_SUB_OP":
+            case "MUL_DIV_OP":
             case "EXPR_OR_FUNC_END":
             case "FUNC_CALL_END":
             case "IF_STAT":
@@ -241,7 +245,8 @@ public class TigerIrGenerator
                 generateCode(children.get(1)); //<DECLARATION_SEGMENT>
                 generateCode(children.get(2)); //IN
 
-                code.add("_program_start:");
+                code.add("#Body of the actual program begins here.");
+                code.add("___program_start:");
 
                 generateCode(children.get(3)); //<STAT_SEQ>
                 generateCode(children.get(4)); //END
@@ -545,38 +550,6 @@ public class TigerIrGenerator
                 }
             } break;
 
-
-            case "INEQUALITY_OP":
-            case "EQUALITY_OP":
-            {
-
-            } break;
-
-            case "ADD_SUB_OP":
-            case "MUL_DIV_OP":
-            {
-                Map<String, Object> myAttributes = new HashMap<>();
-                attributes.put(node, myAttributes);
-
-                ParseTreeNode childNode = node.getChildren().get(0);
-                Token operator = (Token)childNode.getNodeType();
-
-                switch(operator)
-                {
-                    case PLUS:
-                        myAttributes.put("operation", "add");
-                        break;
-                    case MINUS:
-                        myAttributes.put("operation", "sub");
-                        break;
-                    case MULT:
-                        myAttributes.put("operation", "mult");
-                        break;
-                    case DIV:
-                        myAttributes.put("operation", "div");
-                }
-            } break;
-
             case "EXPR":
             case "TERM1":
             case "TERM2":
@@ -653,30 +626,49 @@ public class TigerIrGenerator
                         }
                         else //ADD_SUB OR MUL_DIV
                         {
-                            Map<String, Object> operationAttributes = attributes.get(children.get(0));
-                            operation = (String) operationAttributes.get("operation");
+                            ParseTreeNode grandChild = children.get(0).getChildren().get(0);
+                            Token grandChildNodeType = (Token) grandChild.getNodeType();
+
+                            if (grandChildNodeType == Token.PLUS)
+                            {
+                                operation = "add";
+                            }
+                            else if (grandChildNodeType == Token.MINUS)
+                            {
+                                operation = "sub";
+                            }
+                            else if (grandChildNodeType == Token.MULT)
+                            {
+                                operation = "mult";
+                            }
+                            else //DIV
+                            {
+                                operation = "div";
+                            }
                         }
 
                         code.add(instruction(operation, leftOpRegister, rightOpRegister, resultRegister));
                         myAttributes.put("register", resultRegister);
                     }
+                    else
                     {
-                        //Equality or Inequality op
+                        ParseTreeNode grandChild = children.get(0).getChildren().get(0);
+                        Token operation = (Token)grandChild.getNodeType();
 
+                        //Equality or Inequality op
                         if(childNodeType == NonterminalSymbol.EQUALITY_OP)
                         {
-                            ParseTreeNode grandChild = children.get(0).getChildren().get(0);
-                            Token operation = (Token)grandChild.getNodeType();
 
-                            String takeBranchLabel = "_EQ_branch" + nextBranchLabel;
-                            String skipBranchLabel = "_skip_EQ_branch" + nextBranchLabel;
+                            String takeBranchLabel = "___EQ_OR_NEQ_true" + nextBranchLabel;
+                            String skipBranchLabel = "___EQ_OR_NEQ_false" + nextBranchLabel;
                             nextBranchLabel++;
 
                             String resultIfEqual = (operation == Token.EQ) ? "1" : "0";
                             String resultIfNotEqual = (operation == Token.EQ) ? "0" : "1";
 
-                            code.add(instruction("breq", leftOpRegister, rightOpRegister, takeBranchLabel));
+                            code.add("\t#assume false, then change value if true");
                             code.add(instruction("assign", resultRegister, resultIfNotEqual, null));
+                            code.add(instruction("breq", leftOpRegister, rightOpRegister, takeBranchLabel));
                             code.add(instruction("goto", skipBranchLabel, null, null));
                             code.add("#");
                             code.add(takeBranchLabel + ":");
@@ -686,7 +678,26 @@ public class TigerIrGenerator
                         }
                         else //INEQUALITY OP
                         {
+                            String takeBranchLabel = "___INEQ_true" + nextBranchLabel;
+                            String skipBranchLabel = "___INEQ_false" + nextBranchLabel;
+                            nextBranchLabel++;
 
+                            boolean takeBranchIfEq = (operation == Token.LESSEREQ || operation == Token.GREATEREQ);
+                            String opString = (operation == Token.LESSER || operation == Token.LESSEREQ) ? "brlt" : "brgt";
+
+                            code.add("\t#assume false, then change value if true");
+                            code.add(instruction("assign", resultRegister, "0", null));
+                            code.add(instruction(opString, leftOpRegister, rightOpRegister, takeBranchLabel));
+
+                            if(takeBranchIfEq)
+                                code.add(instruction("breq", leftOpRegister, rightOpRegister, takeBranchLabel));
+
+                            code.add(instruction("goto", skipBranchLabel, null, null));
+                            code.add("#");
+                            code.add(takeBranchLabel + ":");
+                            code.add(instruction("assign", resultRegister, "1", null));
+                            code.add("#");
+                            code.add(skipBranchLabel + ":");
                         }
 
                         generateCode(children.get(2));
@@ -773,6 +784,6 @@ public class TigerIrGenerator
         String str2 = (operand2 == null) ? "" : operand2;
         String str3 = (operand3 == null) ? "" : operand3;
 
-        return str0 + ", " + str1 + ", " + str2 + ", " + str3;
+        return "\t" + str0 + ", " + str1 + ", " + str2 + ", " + str3;
     }
 }
