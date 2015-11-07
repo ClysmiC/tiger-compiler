@@ -578,9 +578,11 @@ public class TigerSemanticAnalyzer
 
                     if(!isTypeCompatibleAssignment(myType, statAssignRhsType))
                     {
-                        String rhsTypeString = (statAssignRhsType == null) ? "[unknown]" : statAssignRhsType.getName();
-
-                        addSemanticError("Cannot assign type " + rhsTypeString + " to variable of type " + myType.getName(), node.getLineNumber());
+                        //if type IS null, it means its an unknown identifier, which was reported elsewhere
+                        if(myType != null && statAssignRhsType != null)
+                        {
+                            addSemanticError("Cannot assign type " + statAssignRhsType.getName() + " to variable of type " + myType.getName(), node.getLineNumber());
+                        }
                     }
                 }
                 //<STAT_ASSIGN_OR_FUNC> -><FUNC_CALL_END>
@@ -1188,8 +1190,11 @@ public class TigerSemanticAnalyzer
                 }
                 else
                 {
-                    addSemanticError("Operation between incompatible types: \"" + leftType.getName() + "\" and \"" + rightType.getName() + "\"", node.getLineNumber());
-                    return;
+                    if(leftType != null && rightType != null)
+                    {
+                        addSemanticError("Operation between incompatible types: \"" + leftType.getName() + "\" and \"" + rightType.getName() + "\"", node.getLineNumber());
+                        return;
+                    }
                 }
 
                 //now that we've added a preliminary type to ourselves, go to the last child, which might use that type

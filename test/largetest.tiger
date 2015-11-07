@@ -62,5 +62,9 @@ in
 
 		enddo;
 
+        j := 3;
+
+        f := k + z - randomLetters;
+
         z := y + y;
 end
