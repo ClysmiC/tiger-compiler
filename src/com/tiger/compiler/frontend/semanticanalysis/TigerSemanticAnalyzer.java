@@ -929,7 +929,8 @@ public class TigerSemanticAnalyzer
                     }
                     else
                     {
-                        addSemanticError("Undeclared identifier \"" + varId + "\"", node.getLineNumber());
+                        //error already reported
+                        //addSemanticError("Undeclared identifier \"" + varId + "\"", node.getLineNumber());
                         return;
                     }
 
@@ -1157,6 +1158,9 @@ public class TigerSemanticAnalyzer
                     // =, <>
                     else if (nodeTypeStr.contains("3"))
                     {
+                        if(leftType == null || rightType == null)
+                            return;
+
                         if (!leftType.getName().equals(rightType.getName()))
                         {
                             addSemanticError("= or <> require operands of the same type.", node.getLineNumber());
@@ -1168,6 +1172,9 @@ public class TigerSemanticAnalyzer
                     // <, <=, >, >=
                     else if (nodeTypeStr.contains("2"))
                     {
+                        if(leftType == null || rightType == null)
+                            return;
+                        
                         if (!(leftType == rightType && (leftType == TypeSymbol.INT || rightType == TypeSymbol.FLOAT)))
                         {
                             addSemanticError("<, <=, >, >= require operands that are both ints or both floats.", node.getLineNumber());

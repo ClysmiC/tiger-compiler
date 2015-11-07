@@ -62,9 +62,19 @@ in
 
 		enddo;
 
+        break;
+
         j := 3;
 
         f := k + z - randomLetters;
 
         z := y + y;
+
+        z := 11;
+        z := notDeclared;
+        z := y * notDeclared;
+        z := y & notDeclared;
+        z := y - notDeclared;
+        z := y <> notDeclared;
+        z := y <= notDeclared;
 end
