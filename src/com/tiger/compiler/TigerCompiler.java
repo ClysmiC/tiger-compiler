@@ -50,9 +50,10 @@ public class TigerCompiler
 
         if(errors.length == 0)
         {
-            TigerIrGenerator ir = new TigerIrGenerator(parseTreeRoot, semanticAnalyzer.getParseTreeAttributes());
+            TigerIrGenerator ir = new TigerIrGenerator(parseTreeRoot, semanticAnalyzer.getParseTreeAttributes(), globalSymbolTable);
             String[] code = ir.generateCode();
 
+            Output.debugPrintln("\n\n\n***********INTERMEDIATE CODE***********\n");
             for(String codeLine: code)
             {
                 //Only print comments in debug mode

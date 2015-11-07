@@ -4,6 +4,7 @@ let
         var X, Y : ArrayInt := 10; /* Declare vars X and Y as arrays with initialization */
         var i, sum :int := 0;
 in
+		i := sum;
         for i := 1 to 100 do /* for loop for dot product */
                 sum := sum + X[i] * Y [i];
         enddo;

@@ -16,22 +16,28 @@ import java.util.*;
 public class TigerIrGenerator
 {
     private ParseTreeNode parseTreeRoot;
+    private Map<String, Symbol> globalSymbolTable;
     private Map<ParseTreeNode, Map<String, Object>> semanticAttributes;
     private Map<ParseTreeNode, Map<String, Object>> attributes; //for IR generation, such as register name
 
     //stores the actual code lines that get generated
     private List<String> code;
 
-    private int nextTemp;
+    private int nextTempRegister;
+    private int nextBranchLabel;
 
-    public TigerIrGenerator(ParseTreeNode parseTreeRoot, Map<ParseTreeNode, Map<String, Object>> parseTreeAttributes)
+    public TigerIrGenerator(ParseTreeNode parseTreeRoot,
+                            Map<ParseTreeNode, Map<String, Object>> parseTreeAttributes,
+                            Map<String, Symbol> globalSymbolTable)
     {
         this.parseTreeRoot = parseTreeRoot;
         this.semanticAttributes = parseTreeAttributes;
+        this.globalSymbolTable = globalSymbolTable;
 
         code = new LinkedList<String>();
         attributes = new HashMap<>();
-        nextTemp = 0;
+        nextTempRegister = 0;
+        nextBranchLabel = 0;
     }
 
     public String[] generateCode()
@@ -66,6 +72,31 @@ public class TigerIrGenerator
             Output.println("Fatal error: Compiler failed to cast parse tree node type to either a token or nonterminal." +
                     "Perhaps you put semantic actions in your parse tree?");
             System.exit(-1);
+        }
+
+        //since PRIME_TERM will behave however the case it expands to behaves, just change the string
+        //before doing the switch.
+        if (nodeTypeStr.equals("PRIME_TERM"))
+        {
+            List<ParseTreeNode> children = node.getChildren();
+
+            if (!children.isEmpty())
+            {
+                GrammarSymbol childSymbol = children.get(0).getNodeType();
+
+                if (childSymbol == Token.OR)
+                    nodeTypeStr = "EXPR_PRIME";
+                else if (childSymbol == Token.AND)
+                    nodeTypeStr = "TERM1_PRIME";
+                else if (childSymbol == NonterminalSymbol.INEQUALITY_OP)
+                    nodeTypeStr = "TERM2_PRIME";
+                else if (childSymbol == NonterminalSymbol.EQUALITY_OP)
+                    nodeTypeStr = "TERM3_PRIME";
+                else if (childSymbol == NonterminalSymbol.ADD_SUB_OP)
+                    nodeTypeStr = "TERM4_PRIME";
+                else if (childSymbol == NonterminalSymbol.MUL_DIV_OP)
+                    nodeTypeStr = "TERM5_PRIME";
+            }
         }
 
         switch (nodeTypeStr)
@@ -124,13 +155,39 @@ public class TigerIrGenerator
 
             case "ID":
             {
+                //IDs are stored in registers named _[id-name]
+                //If the ID is a parameter to a function, we don't want to overwrite any global variables with the
+                //same name, so we store it in register named __[function-name]_[id-name]
+                //two underscores are required because there could be a global variable named [function-name]_[id-name]
+                //and we don't want to risk overriding that
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
 
+
+                Map<String, Object> mySemanticAttributes = semanticAttributes.get(node);
+                String functionName = (String)mySemanticAttributes.get("functionName");
+
                 String idName = node.getLiteralToken();
 
-                if(!myAttributes.containsKey("register"))
+                if(functionName == null) //not in a function
+                {
                     myAttributes.put("register", "_" + idName);
+                }
+                else
+                {
+                    Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>)mySemanticAttributes.get("functionSymbolTable");
+
+                    Symbol param = functionSymbolTable.get(idName);
+
+                    if(param == null) //it is a global variable, not a param
+                    {
+                        myAttributes.put("register", "_" + idName);
+                    }
+                    else //it is a parameter
+                    {
+                        myAttributes.put("register", "__" + functionName + "_" + idName);
+                    }
+                }
             } break;
 
             case "INTLIT":
@@ -141,7 +198,7 @@ public class TigerIrGenerator
 
                 String value = node.getLiteralToken();
 
-                String register = "_" + nextTemp++;
+                String register = "_t" + nextTempRegister++;
                 myAttributes.put("register", register);
                 code.add(instruction("assign", register, value, null));
             } break;
@@ -158,39 +215,17 @@ public class TigerIrGenerator
             case "PARAM":
             case "STAT_SEQ":
             case "STAT_SEQ_CONT":
-            case "INEQUALITY_OP":
-            case "EQUALITY_OP":
-            case "ADD_SUB_OP":
-            case "MUL_DIV_OP":
-            case "FUNC_DECLARATION":
             case "TYPE_SYMBOL":
             case "STAT":
-            case "STAT_ASSIGN_OR_FUNC":
-            case "STAT_ASSIGN_RHS":
             case "EXPR_OR_FUNC_END":
             case "FUNC_CALL_END":
             case "IF_STAT":
             case "IF_END":
             case "TYPE_ID":
-            case "FACTOR":
             case "EXPR_LIST":
             case "EXPR_LIST_TAIL":
             case "PARAM_LIST":
             case "PARAM_LIST_TAIL":
-            case "LVALUE_TAIL":
-            case "PRIME_TERM":
-            case "EXPR":
-            case "TERM1":
-            case "TERM2":
-            case "TERM3":
-            case "TERM4":
-            case "TERM5":
-            case "EXPR_PRIME":
-            case "TERM1_PRIME":
-            case "TERM2_PRIME":
-            case "TERM3_PRIME":
-            case "TERM4_PRIME":
-            case "TERM5_PRIME":
             {
                 List<ParseTreeNode> children = node.getChildren();
 
@@ -363,6 +398,364 @@ public class TigerIrGenerator
                 String litRegister = (String)litAttributes.get("register");
 
                 myAttributes.put("register", litRegister);
+            } break;
+
+            case "FUNC_DECLARATION":
+            {
+                List<ParseTreeNode> children = node.getChildren();
+
+                generateCode(children.get(0)); //FUNCTION
+                generateCode(children.get(1)); //ID
+
+                String funcName = children.get(1).getLiteralToken();
+
+                generateCode(children.get(2)); //LPAREN
+                generateCode(children.get(3)); //<PARAM_LIST>
+                generateCode(children.get(4)); //RPAREN
+                generateCode(children.get(5)); //<RET_TYPE>
+                generateCode(children.get(6)); //BEGIN
+
+                code.add("funcName:");
+
+                generateCode(children.get(7)); //<STAT_SEQ>
+                generateCode(children.get(8)); //END
+                generateCode(children.get(9)); //SEMI
+
+            } break;
+
+            case "STAT_ASSIGN_OR_FUNC":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                {
+                    generateCode(child);
+                }
+
+                //<STAT_ASSIGN_OR_FUNC> -> <LVALUE_TAIL> ASSIGN <STAT_ASSIGN_RHS>
+                if(children.get(0).getNodeType() == NonterminalSymbol.LVALUE_TAIL)
+                {
+                    //reach up through parent node to find the register we are storing
+                    //the assignment in
+                    ParseTreeNode parent_STAT = node.getParent(); //<STAT> -> ID <STAT_ASSIGN_OR_FUNC> SEMI
+                    ParseTreeNode parent_child_ID = parent_STAT.getChildren().get(0);
+
+                    Map<String, Object> parent_child_ID_attributes = attributes.get(parent_child_ID);
+                    String lhsIdRegister = (String)parent_child_ID_attributes.get("register");
+
+                    Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
+                    String indexRegister = (String)lValueTailAttributes.get("register");
+
+                    Map<String, Object> statAssignRhsAttributes = attributes.get(children.get(2));
+                    String statAssignRhsRegister = (String)statAssignRhsAttributes.get("register");
+
+                    if(indexRegister == null)
+                    {
+                        code.add(instruction("assign", lhsIdRegister, statAssignRhsRegister, null));
+                    }
+                    else
+                    {
+                        code.add(instruction("array_store", lhsIdRegister, indexRegister, statAssignRhsRegister));
+                    }
+                }
+                //<STAT_ASSIGN_OR_FUNC> -> <FUNC_CALL_END>
+                else
+                {
+
+                }
+            } break;
+
+            case "LVALUE_TAIL":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                {
+                    generateCode(child);
+                }
+
+                //<LVALUE_TAIL> -> NULL
+                if(children.isEmpty())
+                {
+                    myAttributes.put("register", null);
+                }
+                //<LVALUE_TAIL> -> LBRACK <EXPR> RBRACK
+                else
+                {
+                    Map<String, Object> exprAttributes = attributes.get(children.get(1));
+                    String exprRegister = (String)exprAttributes.get("register");
+
+                    myAttributes.put("register", exprRegister);
+                }
+            } break;
+
+            case "STAT_ASSIGN_RHS":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                List<ParseTreeNode> children = node.getChildren();
+
+                //<STAT_ASSIGN_RHS> -> ID <EXPR_OR_FUNC_END>
+                if(children.get(0).getNodeType() == Token.ID)
+                {
+
+                }
+                //<STAT_ASSIGN_RHS> -> LPAREN <EXPR> RPAREN <PRIME_TERM>
+                else if (children.get(0).getNodeType() == Token.LPAREN)
+                {
+                    generateCode(children.get(0));
+                    generateCode(children.get(1));
+
+                    Map<String, Object> exprAttributes = attributes.get(children.get(1));
+                    String exprRegister = (String)exprAttributes.get("register");
+
+                    //prime term uses this register to calculate what will be in it's register
+                    //our final register will be whatever is in the prime term register
+                    myAttributes.put("register", exprRegister);
+
+                    generateCode(children.get(2));
+                    generateCode(children.get(3));
+
+                    Map<String, Object> primeTermAttributes = attributes.get(children.get(3));
+                    String primeTermRegister = (String) primeTermAttributes.get("register");
+
+                    myAttributes.put("register", primeTermRegister);
+                }
+                //<STAT_ASSIGN_RHS> -> <CONST> <PRIME_TERM>
+                else if (children.get(0).getNodeType() == NonterminalSymbol.CONST)
+                {
+                    generateCode(children.get(0));
+                    Map<String, Object> constAttributes = attributes.get(children.get(0));
+                    String constRegister = (String)constAttributes.get("register");
+
+                    //prime term uses this register to calculate what will be in it's register
+                    //our final register will be whatever is in the prime term register
+                    myAttributes.put("register", constRegister);
+
+                    generateCode(children.get(1));
+                    Map<String, Object> primeTermAttributes = attributes.get(children.get(1));
+                    String primeTermRegister = (String) primeTermAttributes.get("register");
+
+                    myAttributes.put("register", primeTermRegister);
+                }
+            } break;
+
+
+            case "INEQUALITY_OP":
+            case "EQUALITY_OP":
+            {
+
+            } break;
+
+            case "ADD_SUB_OP":
+            case "MUL_DIV_OP":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                ParseTreeNode childNode = node.getChildren().get(0);
+                Token operator = (Token)childNode.getNodeType();
+
+                switch(operator)
+                {
+                    case PLUS:
+                        myAttributes.put("operation", "add");
+                        break;
+                    case MINUS:
+                        myAttributes.put("operation", "sub");
+                        break;
+                    case MULT:
+                        myAttributes.put("operation", "mult");
+                        break;
+                    case DIV:
+                        myAttributes.put("operation", "div");
+                }
+            } break;
+
+            case "EXPR":
+            case "TERM1":
+            case "TERM2":
+            case "TERM3":
+            case "TERM4":
+            case "TERM5":
+            {
+                //<TERM#> -> <TERM # + 1> <Term # Prime>
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                List<ParseTreeNode> children = node.getChildren();
+
+                generateCode(children.get(0));
+                Map<String, Object> termAttributes = attributes.get(children.get(0));
+                String termRegister = (String) termAttributes.get("register");
+                myAttributes.put("register", termRegister);
+
+                generateCode(children.get(1));
+                Map<String, Object> primeTermAttributes = attributes.get(children.get(1));
+                String primeTermRegister = (String) termAttributes.get("register");
+
+                if(primeTermRegister != null)
+                    myAttributes.put("register", primeTermRegister);
+            } break;
+
+            case "PRIME_TERM":
+            case "EXPR_PRIME":
+            case "TERM1_PRIME":
+            case "TERM2_PRIME":
+            case "TERM3_PRIME":
+            case "TERM4_PRIME":
+            case "TERM5_PRIME":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                String leftOpRegister = (String)parentAttributes.get("register");
+
+                List<ParseTreeNode> children = node.getChildren();
+
+                if(children.isEmpty())
+                {
+                    //this term doesn't actually do an operation (but the parent doesn't know that)
+                    //so just give the parent register right back to the parent
+                    myAttributes.put("register", leftOpRegister);
+                }
+                //<PRIME_TERM> -> <OP> <TERM> <TERM_PRIME>
+                else
+                {
+                    generateCode(children.get(0));
+                    generateCode(children.get(1));
+
+                    Map<String, Object> termAttributes = attributes.get(children.get(1));
+                    String rightOpRegister = (String)termAttributes.get("register");
+
+                    String resultRegister = "_t" + nextTempRegister++;
+
+                    GrammarSymbol childNodeType = children.get(0).getNodeType();
+
+                    //and, or, add, sub, mul, div all have IR ops so they are straightforward. Equality_OP and INEQUALITY_OP
+                    //are a little more involved...
+                    if(childNodeType != NonterminalSymbol.EQUALITY_OP && childNodeType != NonterminalSymbol.INEQUALITY_OP)
+                    {
+                        String operation;
+                        if (childNodeType == Token.OR)
+                        {
+                            operation = "or";
+                        }
+                        else if (childNodeType == Token.AND)
+                        {
+                            operation = "and";
+                        }
+                        else //ADD_SUB OR MUL_DIV
+                        {
+                            Map<String, Object> operationAttributes = attributes.get(children.get(0));
+                            operation = (String) operationAttributes.get("operation");
+                        }
+
+                        code.add(instruction(operation, leftOpRegister, rightOpRegister, resultRegister));
+                        myAttributes.put("register", resultRegister);
+                    }
+                    {
+                        //Equality or Inequality op
+
+                        if(childNodeType == NonterminalSymbol.EQUALITY_OP)
+                        {
+                            ParseTreeNode grandChild = children.get(0).getChildren().get(0);
+                            Token operation = (Token)grandChild.getNodeType();
+
+                            String takeBranchLabel = "_EQ_branch" + nextBranchLabel;
+                            String skipBranchLabel = "_skip_EQ_branch" + nextBranchLabel;
+                            nextBranchLabel++;
+
+                            String resultIfEqual = (operation == Token.EQ) ? "1" : "0";
+                            String resultIfNotEqual = (operation == Token.EQ) ? "0" : "1";
+
+                            code.add(instruction("breq", leftOpRegister, rightOpRegister, takeBranchLabel));
+                            code.add(instruction("assign", resultRegister, resultIfNotEqual, null));
+                            code.add(instruction("goto", skipBranchLabel, null, null));
+                            code.add("#");
+                            code.add(takeBranchLabel + ":");
+                            code.add(instruction("assign", resultRegister, resultIfEqual, null));
+                            code.add("#");
+                            code.add(skipBranchLabel + ":");
+                        }
+                        else //INEQUALITY OP
+                        {
+
+                        }
+
+                        generateCode(children.get(2));
+                        Map<String, Object> primeTermAttributes = attributes.get(children.get(2));
+                        String primeTermRegister = (String) primeTermAttributes.get("register");
+                        myAttributes.put("register", primeTermRegister);
+                    }
+
+                }
+            } break;
+
+
+            case "FACTOR":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                List<ParseTreeNode> children = node.getChildren();
+
+                for(ParseTreeNode child: children)
+                {
+                    generateCode(child);
+                }
+
+
+
+
+                //<FACTOR> -> LPAREN <EXPR> RPAREN
+                if(children.get(0).getNodeType() == Token.LPAREN)
+                {
+                    Map<String, Object> exprAttributes = attributes.get(children.get(1));
+                    String exprRegister = (String)exprAttributes.get("register");
+
+                    myAttributes.put("register", exprRegister);
+                }
+                //<FACTOR> -> ID <LVALUE_TAIL>
+                else if(children.get(0).getNodeType() == Token.ID)
+                {
+                    //we don't want to use the registers that hold the variables for RHS stuff,
+                    //so we copy the ID value into a temp register (or the index of the id value
+                    //we are grabbing)
+                    Map<String, Object> idAttributes = attributes.get(children.get(0));
+                    Map<String, Object> lValueTailAttributes = attributes.get(children.get(1));
+
+                    String idRegister = (String) idAttributes.get("register");
+                    String indexRegister = (String) lValueTailAttributes.get("register");
+
+                    String tempRegister = "_t" + nextTempRegister++;
+
+                    if (indexRegister != null)
+                    {
+                        code.add(instruction("array_load", tempRegister, idRegister, indexRegister));
+                    }
+                    else
+                    {
+                        code.add(instruction("assign", tempRegister, idRegister, null));
+                    }
+
+                    myAttributes.put("register", tempRegister);
+                }
+                //<FACTOR> -> <CONST>
+                else if(children.get(0).getNodeType() == NonterminalSymbol.CONST)
+                {
+                    Map<String, Object> constAttributes = attributes.get(children.get(0));
+                    String constRegister = (String)constAttributes.get("register");
+
+                    myAttributes.put("register", constRegister);
+                }
+
             } break;
 
             default:

@@ -1082,17 +1082,6 @@ public class TigerSemanticAnalyzer
             }
             break;
 
-            case "PRIME_TERM":
-            {
-                //NOTE: THIS CASE WILL ONLY GET ACTIVATED IF PRIME EXPANDS TO NULL
-                //IF IT EXPANDS TO A DIFFERENT PRIME TERM, WE CHANGE THE STRING
-                //BEFORE WE SWITCH ON IT TO MAKE SURE IT MAPS TO THE CORRECT CASE
-                Map<String, Object> myAttributes = new HashMap<>();
-                attributes.put(node, myAttributes);
-                myAttributes.put("type", null);
-            }
-            break;
-
             case "EXPR":
             case "TERM1":
             case "TERM2":
@@ -1130,6 +1119,7 @@ public class TigerSemanticAnalyzer
             }
             break;
 
+            case "PRIME_TERM": //NOTE: PRIME_TERM actually gets mapped to whichever prime term it is (unless it is null)
             case "EXPR_PRIME":
             case "TERM1_PRIME":
             case "TERM2_PRIME":
