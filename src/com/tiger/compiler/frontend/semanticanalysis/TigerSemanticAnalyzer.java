@@ -198,7 +198,7 @@ public class TigerSemanticAnalyzer
                 }
                 else
                 {
-                    semanticErrors.add("Undeclared identifier \"" + id + "\"");
+                    addSemanticError("Undeclared identifier \"" + id + "\"", node.getLineNumber());
                     return;
                 }
 
@@ -342,7 +342,7 @@ public class TigerSemanticAnalyzer
 
                 if(!isTypeCompatibleInit(type, initType))
                 {
-                    semanticErrors.add("Illegal initialization type.");
+                    addSemanticError("Illegal initialization type.", node.getLineNumber());
                     return;
                 }
             } break;
@@ -453,7 +453,7 @@ public class TigerSemanticAnalyzer
 
                         if (!(symbol instanceof FunctionSymbol))
                         {
-                            semanticErrors.add("Cannot call \"" + funcId + "\" as if it were a function.");
+                            addSemanticError("Cannot call \"" + funcId + "\" as if it were a function.", node.getLineNumber());
                             return;
                         }
                     }
@@ -471,12 +471,12 @@ public class TigerSemanticAnalyzer
                     {
                         if(expectedReturnType == null)
                         {
-                            semanticErrors.add("Cannot return value in void function \"" + functionName + "\".");
+                            addSemanticError("Cannot return value in void function \"" + functionName + "\".", node.getLineNumber());
                             return;
                         }
                         else
                         {
-                            semanticErrors.add("Function \"" + functionName + "\" must return type \"" + expectedReturnType.getName() + "\".");
+                            addSemanticError("Function \"" + functionName + "\" must return type \"" + expectedReturnType.getName() + "\".", node.getLineNumber());
                             return;
                         }
                     }
@@ -489,7 +489,7 @@ public class TigerSemanticAnalyzer
 
                     if(exprType != TypeSymbol.INT)
                     {
-                        semanticErrors.add("While loop condition must resolve to type int.");
+                        addSemanticError("While loop condition must resolve to type int.", node.getLineNumber());
                         return;
                     }
                 }
@@ -507,13 +507,13 @@ public class TigerSemanticAnalyzer
 
                     if(idType != TypeSymbol.INT)
                     {
-                        semanticErrors.add("For loop variable must be type int.");
+                        addSemanticError("For loop variable must be type int.", node.getLineNumber());
                         return;
                     }
 
                     if(expr1Type != TypeSymbol.INT || expr2Type != TypeSymbol.INT)
                     {
-                        semanticErrors.add("For loop upper and lower bound expressions must resolve to int.");
+                        addSemanticError("For loop upper and lower bound expressions must resolve to int.", node.getLineNumber());
                         return;
                     }
                 }
@@ -557,7 +557,7 @@ public class TigerSemanticAnalyzer
 
                     if (indexedIntoArray && !myType.isArrayOfBaseType())
                     {
-                        semanticErrors.add("Cannot index into variables whose type is not an array.");
+                        addSemanticError("Cannot index into variables whose type is not an array.", node.getLineNumber());
                         return;
                     }
 
@@ -578,7 +578,9 @@ public class TigerSemanticAnalyzer
 
                     if(!isTypeCompatibleAssignment(myType, statAssignRhsType))
                     {
-                        semanticErrors.add("Cannot assign type " + statAssignRhsType.getName() + " to variable of type " + myType.getName());
+                        String rhsTypeString = (statAssignRhsType == null) ? "[unknown]" : statAssignRhsType.getName();
+
+                        addSemanticError("Cannot assign type " + rhsTypeString + " to variable of type " + myType.getName(), node.getLineNumber());
                     }
                 }
                 //<STAT_ASSIGN_OR_FUNC> -><FUNC_CALL_END>
@@ -628,7 +630,7 @@ public class TigerSemanticAnalyzer
 
                         if (!globalSymbolTable.containsKey(funcId))
                         {
-                            semanticErrors.add("Undeclared identifier \"" + funcId + "\".");
+                            addSemanticError("Undeclared identifier \"" + funcId + "\".", node.getLineNumber());
                             myAttributes.put("type", null);
                             return;
                         }
@@ -638,7 +640,7 @@ public class TigerSemanticAnalyzer
 
                         if (!(funcSymbol instanceof FunctionSymbol))
                         {
-                            semanticErrors.add("\"" + funcId + "\" is not a function.");
+                            addSemanticError("\"" + funcId + "\" is not a function.", node.getLineNumber());
                             myAttributes.put("type", null);
                             return;
                         }
@@ -647,7 +649,7 @@ public class TigerSemanticAnalyzer
                         myAttributes.put("type", function.getReturnType());
 
                         List<TypeSymbol> paramTypes = (List<TypeSymbol>) exprOrFuncEndAttributes.get("typeList"); //parameters
-                        verifyFunctionParameters(function, paramTypes);
+                        verifyFunctionParameters(function, paramTypes, node.getLineNumber());
                     }
                     else
                     {
@@ -672,13 +674,13 @@ public class TigerSemanticAnalyzer
                             }
                             else
                             {
-                                semanticErrors.add("Cannot begin expression with non-variable");
+                                addSemanticError("Cannot begin expression with non-variable", node.getLineNumber());
                                 return;
                             }
                         }
                         else
                         {
-                            semanticErrors.add("Undeclared identifier \"" + varId + "\".");
+                            //error gets printed elsewhere
                             myAttributes.put("type", null);
                             return;
                         }
@@ -708,8 +710,8 @@ public class TigerSemanticAnalyzer
                     }
                     else
                     {
-                        semanticErrors.add("Operation between incompatible types: \"" + myType.getName() +
-                                "\" and \"" + primeTermType.getName() + "\"");
+                        addSemanticError("Operation between incompatible types: \"" + myType.getName() +
+                                "\" and \"" + primeTermType.getName() + "\"", node.getLineNumber());
                         return;
                     }
                 }
@@ -735,8 +737,8 @@ public class TigerSemanticAnalyzer
                     }
                     else
                     {
-                        semanticErrors.add("Operation between incompatible types: \"" + myType.getName() +
-                                "\" and \"" + primeTermType.getName() + "\"");
+                        addSemanticError("Operation between incompatible types: \"" + myType.getName() +
+                                "\" and \"" + primeTermType.getName() + "\"", node.getLineNumber());
                         return;
                     }
                 }
@@ -768,7 +770,7 @@ public class TigerSemanticAnalyzer
 
                     if (indexedIntoArray && !myType.isArrayOfBaseType())
                     {
-                        semanticErrors.add("Cannot index into variables whose type is not an array.");
+                        addSemanticError("Cannot index into variables whose type is not an array.", node.getLineNumber());
                         return;
                     }
 
@@ -855,7 +857,7 @@ public class TigerSemanticAnalyzer
 
                 if(exprType != TypeSymbol.INT)
                 {
-                    semanticErrors.add("If statement condition must resolve to type int.");
+                    addSemanticError("If statement condition must resolve to type int.", node.getLineNumber());
                     return;
                 }
             } break;
@@ -925,7 +927,7 @@ public class TigerSemanticAnalyzer
                     }
                     else
                     {
-                        semanticErrors.add("Undeclared identifier \"" + varId + "\"");
+                        addSemanticError("Undeclared identifier \"" + varId + "\"", node.getLineNumber());
                         return;
                     }
 
@@ -935,7 +937,7 @@ public class TigerSemanticAnalyzer
 
                         if (indexedIntoArray && !type.isArrayOfBaseType())
                         {
-                            semanticErrors.add("Cannot index into variables whose type is not an array.");
+                            addSemanticError("Cannot index into variables whose type is not an array.", node.getLineNumber());
                             return;
                         }
 
@@ -953,7 +955,7 @@ public class TigerSemanticAnalyzer
                     }
                     else
                     {
-                        semanticErrors.add("Expressions can only include variables and constants.");
+                        addSemanticError("Expressions can only include variables and constants.", node.getLineNumber());
                         return;
                     }
 
@@ -1006,7 +1008,7 @@ public class TigerSemanticAnalyzer
                 //<PARAM_LIST (TAIL)> -> (COMMA) <PARAM> <PARAM_LIST_TAIL>
                 else
                 {
-                    List<TypeSymbol> typeList = new ArrayList<TypeSymbol>();
+                    List<TypeSymbol> typeList = new ArrayList<>();
 
                     Map<String, Object> exprAttributes = attributes.get(children.get(0 + offset));
                     typeList.add((TypeSymbol) exprAttributes.get("type"));
@@ -1048,7 +1050,7 @@ public class TigerSemanticAnalyzer
 
                     if (exprType != TypeSymbol.INT)
                     {
-                        semanticErrors.add("Arrays must be indexed by type \"int\".");
+                        addSemanticError("Arrays must be indexed by type \"int\".", node.getLineNumber());
                         return;
                     }
                 }
@@ -1146,7 +1148,7 @@ public class TigerSemanticAnalyzer
                     {
                         if (myType != TypeSymbol.INT && myType != TypeSymbol.FLOAT)
                         {
-                            semanticErrors.add("+, -, *, / require operands of type int or float.");
+                            addSemanticError("+, -, *, / require operands of type int or float.", node.getLineNumber());
                             return;
                         }
                     }
@@ -1155,7 +1157,7 @@ public class TigerSemanticAnalyzer
                     {
                         if (!leftType.getName().equals(rightType.getName()))
                         {
-                            semanticErrors.add("= or <> require operands of the same type.");
+                            addSemanticError("= or <> require operands of the same type.", node.getLineNumber());
                             return;
                         }
 
@@ -1166,7 +1168,7 @@ public class TigerSemanticAnalyzer
                     {
                         if (!(leftType == rightType && (leftType == TypeSymbol.INT || rightType == TypeSymbol.FLOAT)))
                         {
-                            semanticErrors.add("<, <=, >, >= require operands that are both ints or both floats.");
+                            addSemanticError("<, <=, >, >= require operands that are both ints or both floats.", node.getLineNumber());
                             return;
                         }
 
@@ -1177,7 +1179,7 @@ public class TigerSemanticAnalyzer
                     {
                         if (myType != TypeSymbol.INT)
                         {
-                            semanticErrors.add("&, | require operands that are both ints.");
+                            addSemanticError("&, | require operands that are both ints.", node.getLineNumber());
                             return;
                         }
                     }
@@ -1186,7 +1188,7 @@ public class TigerSemanticAnalyzer
                 }
                 else
                 {
-                    semanticErrors.add("Operation between incompatible types: \"" + leftType.getName() + "\" and \"" + rightType.getName() + "\"");
+                    addSemanticError("Operation between incompatible types: \"" + leftType.getName() + "\" and \"" + rightType.getName() + "\"", node.getLineNumber());
                     return;
                 }
 
@@ -1259,7 +1261,7 @@ public class TigerSemanticAnalyzer
      * of the function symbol. On success, does nothing. On failure, adds errors to the semantic
      * error list.
      */
-    private void verifyFunctionParameters(FunctionSymbol function, List<TypeSymbol> actualParameters)
+    private void verifyFunctionParameters(FunctionSymbol function, List<TypeSymbol> actualParameters, int lineNumber)
     {
         List<TypeSymbol> expectedParameters = function.getParameterList();
 
@@ -1270,8 +1272,8 @@ public class TigerSemanticAnalyzer
 
         if (actualParameters.size() != expectedParameters.size())
         {
-            semanticErrors.add("Cannot pass " + actualParameters.size() + " arguments to function \"" +
-                    function.getName() + "\" expecting arguments " + expectedParametersStr);
+            addSemanticError("Cannot pass " + actualParameters.size() + " arguments to function \"" +
+                    function.getName() + "\" expecting arguments " + expectedParametersStr, lineNumber);
             return;
         }
 
@@ -1280,8 +1282,8 @@ public class TigerSemanticAnalyzer
             //this allows for ints to be used in place of floats
             if (!isTypeCompatibleAssignment(expectedParameters.get(i), actualParameters.get(i)))
             {
-                semanticErrors.add("Cannot pass arguments " + actualParametersStr + " to function \"" +
-                        function.getName() + "\" expecting arguments " + expectedParametersStr);
+                addSemanticError("Cannot pass arguments " + actualParametersStr + " to function \"" +
+                        function.getName() + "\" expecting arguments " + expectedParametersStr, lineNumber);
                 return;
             }
         }
@@ -1312,5 +1314,10 @@ public class TigerSemanticAnalyzer
         paramStr += ")";
 
         return paramStr;
+    }
+
+    private void addSemanticError(String error, int lineNumber)
+    {
+        semanticErrors.add("(semantic error): Line " + lineNumber + "\n" + error);
     }
 }

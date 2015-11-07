@@ -50,7 +50,7 @@ public class TigerCompiler
         Output.debugPrintln("\n\n\n***********SEMANTIC ERRORS***********");
         for(String error: errors)
         {
-           Output.println(error);
+           Output.println(error + "\n");
         }
     }
 }

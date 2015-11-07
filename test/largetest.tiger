@@ -16,7 +16,7 @@ let
 
         var buffer : ArrayInt := 8;
 
-        function fillArray( int1 : int, int2 : int) : ArrayInt
+        function fillArray( int1 : int, int1 : int) : ArrayInt
         begin
         	/* 	
         		Can assign base type to indices of array
@@ -29,7 +29,7 @@ let
         	return buffer;
         end;
 
-        function fillArrayNoRetVal( int1 : int, int2: int)
+        function fillArrayNoRetVal( int3 : int, int4: int)
         begin
         	buffer[0] := int1;
         	buffer[1] := int2;

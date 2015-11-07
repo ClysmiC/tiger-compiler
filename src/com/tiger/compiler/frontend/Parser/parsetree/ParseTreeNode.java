@@ -12,6 +12,8 @@ public class ParseTreeNode
     private ParseTreeNode parent;
     private GrammarSymbol nodeType;
 
+    private int lineNumber; //line in source code. used for error reporting
+
     //this only makes sense for tokens. for nonterminals, just use null
     //useful for ids, intlits, and floats
     private String literalToken;
@@ -20,27 +22,13 @@ public class ParseTreeNode
 
     private int nextChildToVisit = 0;
 
-    public ParseTreeNode(ParseTreeNode parent, GrammarSymbol nodeType, String literalToken)
-    {
-        this(parent, nodeType, literalToken, null);
-    }
-
-    public ParseTreeNode(ParseTreeNode parent, GrammarSymbol nodeType, String literalToken, List<ParseTreeNode> children)
+    public ParseTreeNode(ParseTreeNode parent, GrammarSymbol nodeType, String literalToken, int lineNumber)
     {
         this.parent = parent;
         this.nodeType = nodeType;
         this.children = new ArrayList<>();
         this.literalToken = literalToken;
-
-        if(children != null)
-        {
-            //don't add semantic actions to the parse tree
-            for(ParseTreeNode child: children)
-            {
-                if(child.nodeType instanceof NonterminalSymbol || child.nodeType instanceof Token)
-                    this.children.add(child);
-            }
-        }
+        this.lineNumber = lineNumber;
     }
 
     public void setChildren(List<ParseTreeNode> children)
@@ -66,6 +54,11 @@ public class ParseTreeNode
     public ParseTreeNode getParent()
     {
         return parent;
+    }
+
+    public int getLineNumber()
+    {
+        return lineNumber;
     }
 
     /**

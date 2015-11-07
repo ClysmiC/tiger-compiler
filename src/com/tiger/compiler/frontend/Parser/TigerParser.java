@@ -28,6 +28,7 @@ public class TigerParser
 
     private Stack<Object> semanticStack;
     int loopLevel;
+    private boolean error;
 
     /**
      * Because of the way Tiger is structured, everything is global, EXCEPT
@@ -61,7 +62,7 @@ public class TigerParser
         stack.add(Token.EOF);
         stack.add(NonterminalSymbol.TIGER_PROGRAM);
 
-        parseTreeRoot = new ParseTreeNode(null, NonterminalSymbol.TIGER_PROGRAM, null);
+        parseTreeRoot = new ParseTreeNode(null, NonterminalSymbol.TIGER_PROGRAM, null, tigerScanner.getLineNum());
         parseTreeFocus = parseTreeRoot;
 
         focus = stack.peek();
@@ -77,7 +78,7 @@ public class TigerParser
         {
             if (focus == Token.EOF && lookAhead == Token.EOF)
             {
-                Output.println(!tigerScanner.isErrorRaised() ? "\nSuccessful parse\n" : "\nUnsuccessful parse");
+                Output.debugPrintln(!tigerScanner.isErrorRaised() && !error ? "\nSuccessful parse\n" : "\nUnsuccessful parse");
 
                 return; //done parsing :)
             }
@@ -164,7 +165,7 @@ public class TigerParser
                         continue;
 
                     //we will add the literal token to the node once we match it, assume it is null for now
-                    parseTreeChildren.add(new ParseTreeNode(parseTreeFocus, symbol, null));
+                    parseTreeChildren.add(new ParseTreeNode(parseTreeFocus, symbol, null, tigerScanner.getLineNum()));
                 }
 
                 parseTreeFocus.setChildren(parseTreeChildren);
@@ -229,8 +230,8 @@ public class TigerParser
 
                         if(globalSymbolTable.containsKey(id))
                         {
-                            System.out.println("Error: \"" + id + "\" already exists in symbol table." +
-                                    "Could not create new type");
+                            Output.println("(symbol table error): Line " + tigerScanner.getLineNum());
+                            Output.println("\"" + id + "\" already exists in symbol table. Could not create new type\n");
                         }
                         else
                         {
@@ -256,8 +257,8 @@ public class TigerParser
 
                             if(globalSymbolTable.containsKey(id))
                             {
-                                System.out.println("Error: \"" + id + "\" already exists in symbol table." +
-                                        "Could not create new variable");
+                                Output.println("(symbol table error): Line " + tigerScanner.getLineNum());
+                                Output.println("\"" + id + "\" already exists in symbol table. Could not create new variable\n");
                             }
                             else
                             {
@@ -319,8 +320,8 @@ public class TigerParser
                                 {
                                     if(functionSymbolTable.containsKey(param.getName()))
                                     {
-                                        Output.println("Error: Repeat parameter name \"" + param.getName() +
-                                                "\" in function \"" + function.getName() + "\"");
+                                        Output.println("(symbol table error): Line " + tigerScanner.getLineNum());
+                                        Output.println("Repeat parameter name \"" + param.getName() + "\" in function \"" + function.getName() + "\"\n");
                                         break;
                                     }
 
@@ -329,8 +330,8 @@ public class TigerParser
 
                                 if(globalSymbolTable.containsKey(id))
                                 {
-                                    Output.println("Error: \"" + id + "\" already exists in symbol table." +
-                                            "Could not create new function.");
+                                    Output.println("(symbol table error): Line " + tigerScanner.getLineNum());
+                                    Output.println("\"" + id + "\" already exists in symbol table. Could not create new variable.\n");
                                 }
                                 else
                                 {
@@ -358,7 +359,9 @@ public class TigerParser
                     {
                         if (loopLevel == 0)
                         {
-                            Output.println("\"break\" may only be used within a loop.");
+                            Output.println("(error): Line " + tigerScanner.getLineNum());
+                            Output.println("\"break\" may only be used within a loop.\n");
+                            error = true;
                         }
                     }
                 }
