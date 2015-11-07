@@ -216,12 +216,10 @@ public class TigerIrGenerator
             case "STAT_SEQ":
             case "STAT_SEQ_CONT":
             case "TYPE_SYMBOL":
-            case "STAT":
             case "INEQUALITY_OP":
             case "EQUALITY_OP":
             case "ADD_SUB_OP":
             case "MUL_DIV_OP":
-            case "EXPR_OR_FUNC_END":
             case "FUNC_CALL_END":
             case "IF_STAT":
             case "IF_END":
@@ -428,6 +426,36 @@ public class TigerIrGenerator
 
             } break;
 
+
+            case "STAT":
+            {
+                code.add("\n\t#Statement on line " + node.getLineNumber() + " of source code.");
+
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                List<ParseTreeNode> children = node.getChildren();
+
+                //<STAT> -> ID <STAT_ASSIGN_OR_FUNC> SEMI
+                if(children.get(0).getNodeType() == Token.ID)
+                {
+                    generateCode(children.get(0));
+                    Map<String, Object> idAttributes = attributes.get(children.get(0));
+                    String idRegister = (String)idAttributes.get("register");
+
+                    myAttributes.put("register", idRegister);
+
+                    generateCode(children.get(1));
+                    generateCode(children.get(2));
+                }
+                else
+                {
+                    //TODO:
+                    for(ParseTreeNode child: children)
+                        generateCode(child);
+                }
+            } break;
+
             case "STAT_ASSIGN_OR_FUNC":
             {
                 Map<String, Object> myAttributes = new HashMap<>();
@@ -442,13 +470,8 @@ public class TigerIrGenerator
                 //<STAT_ASSIGN_OR_FUNC> -> <LVALUE_TAIL> ASSIGN <STAT_ASSIGN_RHS>
                 if(children.get(0).getNodeType() == NonterminalSymbol.LVALUE_TAIL)
                 {
-                    //reach up through parent node to find the register we are storing
-                    //the assignment in
-                    ParseTreeNode parent_STAT = node.getParent(); //<STAT> -> ID <STAT_ASSIGN_OR_FUNC> SEMI
-                    ParseTreeNode parent_child_ID = parent_STAT.getChildren().get(0);
-
-                    Map<String, Object> parent_child_ID_attributes = attributes.get(parent_child_ID);
-                    String lhsIdRegister = (String)parent_child_ID_attributes.get("register");
+                    Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                    String lhsRegister = (String)parentAttributes.get("register");
 
                     Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
                     String indexRegister = (String)lValueTailAttributes.get("register");
@@ -458,17 +481,61 @@ public class TigerIrGenerator
 
                     if(indexRegister == null)
                     {
-                        code.add(instruction("assign", lhsIdRegister, statAssignRhsRegister, null));
+                        code.add(instruction("assign", lhsRegister, statAssignRhsRegister, null));
                     }
                     else
                     {
-                        code.add(instruction("array_store", lhsIdRegister, indexRegister, statAssignRhsRegister));
+                        code.add(instruction("array_store", lhsRegister, indexRegister, statAssignRhsRegister));
                     }
                 }
                 //<STAT_ASSIGN_OR_FUNC> -> <FUNC_CALL_END>
                 else
                 {
 
+                }
+            } break;
+
+            case "EXPR_OR_FUNC_END":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                List<ParseTreeNode> children = node.getChildren();
+
+                //<EXPR_OR_FUNC_END> -> <LVALUE_TAIL> <PRIME_TERM>
+                if(children.get(0).getNodeType() == NonterminalSymbol.LVALUE_TAIL)
+                {
+                    generateCode(children.get(0));
+
+                    Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                    String idRegister = (String) parentAttributes.get("register");
+
+                    Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
+                    String indexRegister = (String) lValueTailAttributes.get("register");
+
+                    String tempRegister = "_t" + nextTempRegister++;
+
+                    if (indexRegister != null)
+                    {
+                        code.add(instruction("array_load", tempRegister, idRegister, indexRegister));
+                    }
+                    else
+                    {
+                        code.add(instruction("assign", tempRegister, idRegister, null));
+                    }
+
+                    myAttributes.put("register", tempRegister);
+
+                    generateCode(children.get(1));
+                    Map<String, Object> primeTermAttributes = attributes.get(children.get(1));
+                    String primeTermRegister = (String)primeTermAttributes.get("register");
+
+                    myAttributes.put("register", primeTermRegister);
+                }
+                //<EXPR_OR_FUNC_END> -> <FUNC_CALL_END>
+                else if (children.get(0).getNodeType() == NonterminalSymbol.FUNC_CALL_END)
+                {
+                    generateCode(children.get(0));
                 }
             } break;
 
@@ -508,7 +575,16 @@ public class TigerIrGenerator
                 //<STAT_ASSIGN_RHS> -> ID <EXPR_OR_FUNC_END>
                 if(children.get(0).getNodeType() == Token.ID)
                 {
+                    generateCode(children.get(0));
+                    Map<String, Object> idAttributes = attributes.get(children.get(0));
+                    String idRegister = (String)idAttributes.get("register");
 
+                    myAttributes.put("register", idRegister);
+
+                    generateCode(children.get(1));
+                    Map<String, Object> exprOrFuncEndAttributes = attributes.get(children.get(1));
+                    String exprOrFuncEndRegister = (String)exprOrFuncEndAttributes.get("register");
+                    myAttributes.put("register", exprOrFuncEndRegister);
                 }
                 //<STAT_ASSIGN_RHS> -> LPAREN <EXPR> RPAREN <PRIME_TERM>
                 else if (children.get(0).getNodeType() == Token.LPAREN)
@@ -570,7 +646,7 @@ public class TigerIrGenerator
 
                 generateCode(children.get(1));
                 Map<String, Object> primeTermAttributes = attributes.get(children.get(1));
-                String primeTermRegister = (String) termAttributes.get("register");
+                String primeTermRegister = (String) primeTermAttributes.get("register");
 
                 if(primeTermRegister != null)
                     myAttributes.put("register", primeTermRegister);
@@ -648,7 +724,6 @@ public class TigerIrGenerator
                         }
 
                         code.add(instruction(operation, leftOpRegister, rightOpRegister, resultRegister));
-                        myAttributes.put("register", resultRegister);
                     }
                     else
                     {
@@ -699,13 +774,16 @@ public class TigerIrGenerator
                             code.add("#");
                             code.add(skipBranchLabel + ":");
                         }
-
-                        generateCode(children.get(2));
-                        Map<String, Object> primeTermAttributes = attributes.get(children.get(2));
-                        String primeTermRegister = (String) primeTermAttributes.get("register");
-                        myAttributes.put("register", primeTermRegister);
                     }
 
+                    myAttributes.put("register", resultRegister);
+
+                    generateCode(children.get(2));
+                    Map<String, Object> primeTermAttributes = attributes.get(children.get(2));
+                    String primeTermRegister = (String) primeTermAttributes.get("register");
+
+                    if(primeTermRegister != null)
+                        myAttributes.put("register", primeTermRegister);
                 }
             } break;
 
