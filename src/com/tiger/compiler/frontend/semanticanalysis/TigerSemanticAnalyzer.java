@@ -145,8 +145,6 @@ public class TigerSemanticAnalyzer
             case "TO":
             case "TYPE":
             case "VAR":
-            case "INT":
-            case "FLOAT":
             case "WHILE":
             case "ENDIF":
             case "BEGIN":
@@ -159,6 +157,20 @@ public class TigerSemanticAnalyzer
             {
                 return;
             }
+
+            case "INT":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+                myAttributes.put("type", TypeSymbol.INT);
+            } break;
+
+            case "FLOAT":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+                myAttributes.put("type", TypeSymbol.FLOAT);
+            } break;
 
             case "ID":
             {
@@ -226,12 +238,8 @@ public class TigerSemanticAnalyzer
             case "VAR_DECLARATION_LIST":
             case "FUNC_DECLARATION_LIST":
             case "TYPE_DECLARATION":
-            case "TYPE_SYMBOL":
-            case "TYPE_ID":
-            case "VAR_DECLARATION":
             case "ID_LIST":
             case "ID_LIST_TAIL":
-            case "OPTIONAL_INIT":
             case "RET_TYPE":
             case "PARAM":
             case "STAT_SEQ":
@@ -311,12 +319,95 @@ public class TigerSemanticAnalyzer
 
             } break;
 
-            case "STAT":
+
+            case "VAR_DECLARATION":
             {
                 //Assign some attributes to self
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
 
+                //Analyze children node
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                {
+                    analyze(child);
+                }
+
+                //<VAR_DECLARATION> -> VAR <ID_LIST> COLON <TYPE_SYMBOL> <OPTIONAL_INIT>  SEMI
+                Map<String, Object> typeSymbolAttributes = attributes.get(children.get(3));
+                TypeSymbol type = (TypeSymbol)typeSymbolAttributes.get("type");
+
+                Map<String, Object> optionalInitAttributes = attributes.get(children.get(4));
+                TypeSymbol initType = (TypeSymbol)optionalInitAttributes.get("type");
+
+                if(!isTypeCompatibleInit(type, initType))
+                {
+                    semanticErrors.add("Illegal initialization type.");
+                    return;
+                }
+            } break;
+
+
+            case "TYPE_SYMBOL":
+            {
+                //Assign some attributes to self
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                //Analyze children node
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                {
+                    analyze(child);
+                }
+
+                //<TYPE_SYMBOL> -> ID
+                //<TYPE_SYMBOL> <TYPE_ID>
+                if(children.get(0).getNodeType() == Token.ID || children.get(0).getNodeType() == NonterminalSymbol.TYPE_ID)
+                {
+                    Map<String, Object> idAttributes = attributes.get(children.get(0));
+                    TypeSymbol idType = (TypeSymbol)idAttributes.get("type");
+
+                    myAttributes.put("type", idType);
+                }
+                //<TYPE_SYMBOL> -> ARRAY LBRACK INTLIT RBRACK OF <TYPE_ID>
+                else if (children.get(0).getNodeType() == Token.ARRAY)
+                {
+                    Map<String, Object> typeIdAttributes = attributes.get(children.get(5));
+                    TypeSymbol type = (TypeSymbol)typeIdAttributes.get("type");
+
+                    myAttributes.put("type", type);
+                }
+            } break;
+
+            case "OPTIONAL_INIT":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                //Analyze children node
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                {
+                    analyze(child);
+                }
+
+                //<OPTIONAL_INIT> -> ASSIGN <CONST>
+                if(!children.isEmpty())
+                {
+                    Map<String, Object> constAttributes = attributes.get(children.get(1));
+                    TypeSymbol constType = (TypeSymbol)constAttributes.get("type");
+
+                    myAttributes.put("type", constType);
+                }
+
+            } break;
+
+            case "STAT":
+            {
+                //Assign some attributes to self
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
 
                 Map<String, Object> parentAttributes = attributes.get(node.getParent());
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
@@ -774,6 +865,7 @@ public class TigerSemanticAnalyzer
 
             } break;
 
+            case "TYPE_ID":
             case "CONST":
             {
                 Map<String, Object> myAttributes = new HashMap<>();
@@ -1120,6 +1212,23 @@ public class TigerSemanticAnalyzer
     private boolean isTypeCompatibleAssignment(TypeSymbol lhsType, TypeSymbol rhsType)
     {
         return (lhsType == TypeSymbol.FLOAT && rhsType == TypeSymbol.INT) || lhsType == rhsType;
+    }
+
+    private boolean isTypeCompatibleInit(TypeSymbol lhsType, TypeSymbol rhsType)
+    {
+        if(rhsType == null) //no init is fine
+            return true;
+
+        if(isTypeCompatibleAssignment(lhsType, rhsType))
+            return true;
+
+        if(lhsType.getBaseType() == TypeSymbol.INT && rhsType == TypeSymbol.INT)
+            return true;
+
+        if(lhsType.getBaseType() == TypeSymbol.FLOAT && (rhsType == TypeSymbol.FLOAT || rhsType == TypeSymbol.INT))
+            return true;
+
+        return false;
     }
 
     /**
