@@ -41,6 +41,11 @@ public class TypeSymbol extends Symbol
         return isArrayOfBaseType;
     }
 
+    public int getArraySize()
+    {
+        return arraySize;
+    }
+
     public String toString()
     {
         String str = "TypeSymbol";

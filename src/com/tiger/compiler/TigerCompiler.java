@@ -1,5 +1,6 @@
 package com.tiger.compiler;
 
+import com.tiger.compiler.frontend.irgeneration.TigerIrGenerator;
 import com.tiger.compiler.frontend.parser.TigerParser;
 import com.tiger.compiler.frontend.parser.parsetree.ParseTreeNode;
 import com.tiger.compiler.frontend.parser.symboltable.Symbol;
@@ -47,10 +48,22 @@ public class TigerCompiler
         Output.debugPrintln("\n\n\n***********PARSE TREE***********");
         Output.debugPrintln(parseTreeRoot.nodeToString(0));
 
-        Output.debugPrintln("\n\n\n***********SEMANTIC ERRORS***********");
-        for(String error: errors)
+        if(errors.length == 0)
         {
-           Output.println(error + "\n");
+            TigerIrGenerator ir = new TigerIrGenerator(parseTreeRoot, semanticAnalyzer.getParseTreeAttributes());
+            String[] code = ir.generateCode();
+
+            for(String codeLine: code)
+            {
+                Output.debugPrintln(codeLine);
+            }
+        }
+        else
+        {
+            for (String error : errors)
+            {
+                Output.println(error + "\n");
+            }
         }
     }
 }

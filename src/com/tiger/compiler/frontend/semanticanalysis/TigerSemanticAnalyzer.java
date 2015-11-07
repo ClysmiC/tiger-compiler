@@ -163,14 +163,16 @@ public class TigerSemanticAnalyzer
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
                 myAttributes.put("type", TypeSymbol.INT);
-            } break;
+            }
+            break;
 
             case "FLOAT":
             {
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
                 myAttributes.put("type", TypeSymbol.FLOAT);
-            } break;
+            }
+            break;
 
             case "ID":
             {
@@ -212,21 +214,24 @@ public class TigerSemanticAnalyzer
                     myType = ((TypeSymbol) symbol);
 
                 myAttributes.put("type", myType);
-            } break;
+            }
+            break;
 
             case "INTLIT":
             {
                 Map<String, Object> myAttributes = new HashMap<>();
                 myAttributes.put("type", TypeSymbol.INT);
                 attributes.put(node, myAttributes);
-            } break;
+            }
+            break;
 
             case "FLOATLIT":
             {
                 Map<String, Object> myAttributes = new HashMap<>();
                 myAttributes.put("type", TypeSymbol.FLOAT);
                 attributes.put(node, myAttributes);
-            } break;
+            }
+            break;
 
 
             /**************************
@@ -260,7 +265,7 @@ public class TigerSemanticAnalyzer
                     Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
 
                     //null outside function decl, but we won't ever reference it outside functions, so no harm done
-                    String functionName = (String)parentAttributes.get("functionName");
+                    String functionName = (String) parentAttributes.get("functionName");
 
                     myAttributes.put("functionSymbolTable", functionSymbolTable);
                     myAttributes.put("functionName", functionName);
@@ -273,7 +278,8 @@ public class TigerSemanticAnalyzer
                     analyze(child);
                 }
 
-            } break;
+            }
+            break;
 
 
             case "FUNC_DECLARATION":
@@ -317,7 +323,8 @@ public class TigerSemanticAnalyzer
                 }
 
 
-            } break;
+            }
+            break;
 
 
             case "VAR_DECLARATION":
@@ -328,24 +335,27 @@ public class TigerSemanticAnalyzer
 
                 //Analyze children node
                 List<ParseTreeNode> children = node.getChildren();
-                for(ParseTreeNode child: children)
+                for (ParseTreeNode child : children)
                 {
                     analyze(child);
                 }
 
                 //<VAR_DECLARATION> -> VAR <ID_LIST> COLON <TYPE_SYMBOL> <OPTIONAL_INIT>  SEMI
                 Map<String, Object> typeSymbolAttributes = attributes.get(children.get(3));
-                TypeSymbol type = (TypeSymbol)typeSymbolAttributes.get("type");
+                TypeSymbol type = (TypeSymbol) typeSymbolAttributes.get("type");
 
                 Map<String, Object> optionalInitAttributes = attributes.get(children.get(4));
-                TypeSymbol initType = (TypeSymbol)optionalInitAttributes.get("type");
+                TypeSymbol initType = (TypeSymbol) optionalInitAttributes.get("type");
 
-                if(!isTypeCompatibleInit(type, initType))
+                if (!isTypeCompatibleInit(type, initType))
                 {
                     addSemanticError("Illegal initialization type.", node.getLineNumber());
                     return;
                 }
-            } break;
+
+                myAttributes.put("type", type);
+            }
+            break;
 
 
             case "TYPE_SYMBOL":
@@ -356,17 +366,17 @@ public class TigerSemanticAnalyzer
 
                 //Analyze children node
                 List<ParseTreeNode> children = node.getChildren();
-                for(ParseTreeNode child: children)
+                for (ParseTreeNode child : children)
                 {
                     analyze(child);
                 }
 
                 //<TYPE_SYMBOL> -> ID
                 //<TYPE_SYMBOL> <TYPE_ID>
-                if(children.get(0).getNodeType() == Token.ID || children.get(0).getNodeType() == NonterminalSymbol.TYPE_ID)
+                if (children.get(0).getNodeType() == Token.ID || children.get(0).getNodeType() == NonterminalSymbol.TYPE_ID)
                 {
                     Map<String, Object> idAttributes = attributes.get(children.get(0));
-                    TypeSymbol idType = (TypeSymbol)idAttributes.get("type");
+                    TypeSymbol idType = (TypeSymbol) idAttributes.get("type");
 
                     myAttributes.put("type", idType);
                 }
@@ -374,11 +384,12 @@ public class TigerSemanticAnalyzer
                 else if (children.get(0).getNodeType() == Token.ARRAY)
                 {
                     Map<String, Object> typeIdAttributes = attributes.get(children.get(5));
-                    TypeSymbol type = (TypeSymbol)typeIdAttributes.get("type");
+                    TypeSymbol type = (TypeSymbol) typeIdAttributes.get("type");
 
                     myAttributes.put("type", type);
                 }
-            } break;
+            }
+            break;
 
             case "OPTIONAL_INIT":
             {
@@ -387,21 +398,22 @@ public class TigerSemanticAnalyzer
 
                 //Analyze children node
                 List<ParseTreeNode> children = node.getChildren();
-                for(ParseTreeNode child: children)
+                for (ParseTreeNode child : children)
                 {
                     analyze(child);
                 }
 
                 //<OPTIONAL_INIT> -> ASSIGN <CONST>
-                if(!children.isEmpty())
+                if (!children.isEmpty())
                 {
                     Map<String, Object> constAttributes = attributes.get(children.get(1));
-                    TypeSymbol constType = (TypeSymbol)constAttributes.get("type");
+                    TypeSymbol constType = (TypeSymbol) constAttributes.get("type");
 
                     myAttributes.put("type", constType);
                 }
 
-            } break;
+            }
+            break;
 
             case "STAT":
             {
@@ -413,7 +425,7 @@ public class TigerSemanticAnalyzer
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
 
                 //null outside function decl, but we won't ever reference it outside functions, so no harm done
-                String functionName = (String)parentAttributes.get("functionName");
+                String functionName = (String) parentAttributes.get("functionName");
 
                 myAttributes.put("functionSymbolTable", functionSymbolTable);
                 myAttributes.put("functionName", functionName);
@@ -428,10 +440,10 @@ public class TigerSemanticAnalyzer
 
                     //after analyzing first child in STAT -> ID <STAT_ASSIGN_OR_FUNC> SEMI
                     //store the id's type
-                    if(child == children.get(0) && child.getNodeType() == Token.ID)
+                    if (child == children.get(0) && child.getNodeType() == Token.ID)
                     {
                         Map<String, Object> idAttributes = attributes.get(children.get(0));
-                        TypeSymbol idType = (TypeSymbol)idAttributes.get("type");
+                        TypeSymbol idType = (TypeSymbol) idAttributes.get("type");
 
                         myAttributes.put("type", idType);
                     }
@@ -444,7 +456,7 @@ public class TigerSemanticAnalyzer
                     ParseTreeNode statAssignOrFuncNode = children.get(1);
                     Map<String, Object> statAssignOrFuncAttributes = attributes.get(statAssignOrFuncNode);
 
-                    if (! (boolean) statAssignOrFuncAttributes.get("isAssignment"))
+                    if (!(boolean) statAssignOrFuncAttributes.get("isAssignment"))
                     {
                         //STAT_ASSIGN_OR_FUNC is a function
                         List<TypeSymbol> arguments = (List<TypeSymbol>) statAssignOrFuncAttributes.get("typeList");
@@ -461,15 +473,15 @@ public class TigerSemanticAnalyzer
                 //<STAT> -> RETURN <EXPR> SEMI
                 else if (children.get(0).getNodeType() == Token.RETURN)
                 {
-                    FunctionSymbol functionSymbol = (FunctionSymbol)globalSymbolTable.get(functionName);
+                    FunctionSymbol functionSymbol = (FunctionSymbol) globalSymbolTable.get(functionName);
                     TypeSymbol expectedReturnType = functionSymbol.getReturnType();
 
                     Map<String, Object> exprAttributes = attributes.get(children.get(1));
-                    TypeSymbol actualReturnType = (TypeSymbol)exprAttributes.get("type");
+                    TypeSymbol actualReturnType = (TypeSymbol) exprAttributes.get("type");
 
-                    if(!isTypeCompatibleAssignment(expectedReturnType, actualReturnType))
+                    if (!isTypeCompatibleAssignment(expectedReturnType, actualReturnType))
                     {
-                        if(expectedReturnType == null)
+                        if (expectedReturnType == null)
                         {
                             addSemanticError("Cannot return value in void function \"" + functionName + "\".", node.getLineNumber());
                             return;
@@ -485,9 +497,9 @@ public class TigerSemanticAnalyzer
                 else if (children.get(0).getNodeType() == Token.WHILE)
                 {
                     Map<String, Object> exprAttributes = attributes.get(children.get(1));
-                    TypeSymbol exprType = (TypeSymbol)exprAttributes.get("type");
+                    TypeSymbol exprType = (TypeSymbol) exprAttributes.get("type");
 
-                    if(exprType != TypeSymbol.INT)
+                    if (exprType != TypeSymbol.INT)
                     {
                         addSemanticError("While loop condition must resolve to type int.", node.getLineNumber());
                         return;
@@ -497,21 +509,21 @@ public class TigerSemanticAnalyzer
                 else if (children.get(0).getNodeType() == Token.FOR)
                 {
                     Map<String, Object> idAttributes = attributes.get(children.get(1));
-                    TypeSymbol idType = (TypeSymbol)idAttributes.get("type");
+                    TypeSymbol idType = (TypeSymbol) idAttributes.get("type");
 
                     Map<String, Object> expr1Attributes = attributes.get(children.get(3));
-                    TypeSymbol expr1Type = (TypeSymbol)expr1Attributes.get("type");
+                    TypeSymbol expr1Type = (TypeSymbol) expr1Attributes.get("type");
 
                     Map<String, Object> expr2Attributes = attributes.get(children.get(5));
-                    TypeSymbol expr2Type = (TypeSymbol)expr2Attributes.get("type");
+                    TypeSymbol expr2Type = (TypeSymbol) expr2Attributes.get("type");
 
-                    if(idType != TypeSymbol.INT)
+                    if (idType != TypeSymbol.INT)
                     {
                         addSemanticError("For loop variable must be type int.", node.getLineNumber());
                         return;
                     }
 
-                    if(expr1Type != TypeSymbol.INT || expr2Type != TypeSymbol.INT)
+                    if (expr1Type != TypeSymbol.INT || expr2Type != TypeSymbol.INT)
                     {
                         addSemanticError("For loop upper and lower bound expressions must resolve to int.", node.getLineNumber());
                         return;
@@ -523,7 +535,8 @@ public class TigerSemanticAnalyzer
                 {
 
                 }
-            } break;
+            }
+            break;
 
             case "STAT_ASSIGN_OR_FUNC":
             {
@@ -551,9 +564,9 @@ public class TigerSemanticAnalyzer
                     myAttributes.put("isAssignment", true);
 
                     Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
-                    TypeSymbol myType = (TypeSymbol)parentAttributes.get("type");
+                    TypeSymbol myType = (TypeSymbol) parentAttributes.get("type");
 
-                    boolean indexedIntoArray = !(boolean)lValueTailAttributes.get("isNull");
+                    boolean indexedIntoArray = !(boolean) lValueTailAttributes.get("isNull");
 
                     if (indexedIntoArray && !myType.isArrayOfBaseType())
                     {
@@ -574,12 +587,12 @@ public class TigerSemanticAnalyzer
                     myAttributes.put("type", myType);
 
                     Map<String, Object> statAssignRhsAttributes = attributes.get(children.get(2));
-                    TypeSymbol statAssignRhsType = (TypeSymbol)statAssignRhsAttributes.get("type");
+                    TypeSymbol statAssignRhsType = (TypeSymbol) statAssignRhsAttributes.get("type");
 
-                    if(!isTypeCompatibleAssignment(myType, statAssignRhsType))
+                    if (!isTypeCompatibleAssignment(myType, statAssignRhsType))
                     {
                         //if type IS null, it means its an unknown identifier, which was reported elsewhere
-                        if(myType != null && statAssignRhsType != null)
+                        if (myType != null && statAssignRhsType != null)
                         {
                             addSemanticError("Cannot assign type " + statAssignRhsType.getName() + " to variable of type " + myType.getName(), node.getLineNumber());
                         }
@@ -594,7 +607,8 @@ public class TigerSemanticAnalyzer
                     List<TypeSymbol> typeList = (List<TypeSymbol>) funcCallEndAttributes.get("typeList");
                     myAttributes.put("typeList", typeList);
                 }
-            } break;
+            }
+            break;
 
             case "STAT_ASSIGN_RHS":
             {
@@ -744,7 +758,8 @@ public class TigerSemanticAnalyzer
                         return;
                     }
                 }
-            } break;
+            }
+            break;
 
             case "EXPR_OR_FUNC_END":
             {
@@ -810,7 +825,8 @@ public class TigerSemanticAnalyzer
                     myAttributes.put("typeList", funcCallEndAttributes.get("typeList"));
                 }
 
-            } break;
+            }
+            break;
 
             case "FUNC_CALL_END":
             {
@@ -834,7 +850,8 @@ public class TigerSemanticAnalyzer
 
                 myAttributes.put("typeList", exprListAttributes.get("typeList"));
 
-            } break;
+            }
+            break;
 
             case "IF_STAT":
             {
@@ -855,19 +872,21 @@ public class TigerSemanticAnalyzer
                 }
 
                 Map<String, Object> exprAttributes = attributes.get(children.get(1));
-                TypeSymbol exprType = (TypeSymbol)exprAttributes.get("type");
+                TypeSymbol exprType = (TypeSymbol) exprAttributes.get("type");
 
-                if(exprType != TypeSymbol.INT)
+                if (exprType != TypeSymbol.INT)
                 {
                     addSemanticError("If statement condition must resolve to type int.", node.getLineNumber());
                     return;
                 }
-            } break;
+            }
+            break;
 
             case "IF_END":
             {
 
-            } break;
+            }
+            break;
 
             case "TYPE_ID":
             case "CONST":
@@ -882,7 +901,8 @@ public class TigerSemanticAnalyzer
 
                 myAttributes.put("type", childAttributes.get("type"));
 
-            } break;
+            }
+            break;
 
 
             case "FACTOR":
@@ -971,7 +991,8 @@ public class TigerSemanticAnalyzer
 
                     myAttributes.put("type", exprType);
                 }
-            } break;
+            }
+            break;
 
 
             //Since these four are basically the same (except tails starts with a comma), share the code between them.
@@ -1022,7 +1043,8 @@ public class TigerSemanticAnalyzer
                     myAttributes.put("typeList", typeList);
                 }
 
-            } break;
+            }
+            break;
 
             case "LVALUE_TAIL":
             {
@@ -1057,7 +1079,8 @@ public class TigerSemanticAnalyzer
                         return;
                     }
                 }
-            } break;
+            }
+            break;
 
             case "PRIME_TERM":
             {
@@ -1067,7 +1090,8 @@ public class TigerSemanticAnalyzer
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
                 myAttributes.put("type", null);
-            } break;
+            }
+            break;
 
             case "EXPR":
             case "TERM1":
@@ -1089,21 +1113,22 @@ public class TigerSemanticAnalyzer
 
                 analyze(children.get(0));
                 Map<String, Object> termAttributes = attributes.get(children.get(0));
-                TypeSymbol myType = (TypeSymbol)termAttributes.get("type");
+                TypeSymbol myType = (TypeSymbol) termAttributes.get("type");
 
                 myAttributes.put("type", myType);
 
                 analyze(children.get(1));
                 Map<String, Object> primeTermAttributes = attributes.get(children.get(1));
-                TypeSymbol primeTermType = (TypeSymbol)primeTermAttributes.get("type");
+                TypeSymbol primeTermType = (TypeSymbol) primeTermAttributes.get("type");
 
                 //since prime term used myType when determining its type, we can
                 //just grab the resulting type (unless the prime term was empty)
-                if(primeTermType != null)
+                if (primeTermType != null)
                 {
                     myAttributes.put("type", primeTermType);
                 }
-            } break;
+            }
+            break;
 
             case "EXPR_PRIME":
             case "TERM1_PRIME":
@@ -1158,7 +1183,7 @@ public class TigerSemanticAnalyzer
                     // =, <>
                     else if (nodeTypeStr.contains("3"))
                     {
-                        if(leftType == null || rightType == null)
+                        if (leftType == null || rightType == null)
                             return;
 
                         if (!leftType.getName().equals(rightType.getName()))
@@ -1172,9 +1197,9 @@ public class TigerSemanticAnalyzer
                     // <, <=, >, >=
                     else if (nodeTypeStr.contains("2"))
                     {
-                        if(leftType == null || rightType == null)
+                        if (leftType == null || rightType == null)
                             return;
-                        
+
                         if (!(leftType == rightType && (leftType == TypeSymbol.INT || rightType == TypeSymbol.FLOAT)))
                         {
                             addSemanticError("<, <=, >, >= require operands that are both ints or both floats.", node.getLineNumber());
@@ -1197,7 +1222,7 @@ public class TigerSemanticAnalyzer
                 }
                 else
                 {
-                    if(leftType != null && rightType != null)
+                    if (leftType != null && rightType != null)
                     {
                         addSemanticError("Operation between incompatible types: \"" + leftType.getName() + "\" and \"" + rightType.getName() + "\"", node.getLineNumber());
                         return;
@@ -1213,7 +1238,8 @@ public class TigerSemanticAnalyzer
                 myType = inferType(myType, primeTermTailType);
 
                 myAttributes.put("type", myType);
-            } break;
+            }
+            break;
 
             default:
             {
@@ -1221,6 +1247,11 @@ public class TigerSemanticAnalyzer
                 System.exit(-1);
             }
         }
+    }
+
+    public Map<ParseTreeNode, Map<String, Object>> getParseTreeAttributes()
+    {
+        return attributes;
     }
 
     private boolean isTypeCompatibleAssignment(TypeSymbol lhsType, TypeSymbol rhsType)
