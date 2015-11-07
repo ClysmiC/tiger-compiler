@@ -150,8 +150,6 @@ public class TigerIrGenerator
             /**************************
              * NONTERMINALS
              **************************/
-            case "TIGER_PROGRAM":
-            case "DECLARATION_SEGMENT":
             case "TYPE_DECLARATION_LIST":
             case "VAR_DECLARATION_LIST":
             case "FUNC_DECLARATION_LIST":
@@ -200,6 +198,39 @@ public class TigerIrGenerator
                     generateCode(child);
             } break;
 
+            case "TIGER_PROGRAM":
+            {
+                List<ParseTreeNode> children = node.getChildren();
+
+                generateCode(children.get(0)); //LET
+                generateCode(children.get(1)); //<DECLARATION_SEGMENT>
+                generateCode(children.get(2)); //IN
+
+                code.add("_program_start:");
+
+                generateCode(children.get(3)); //<STAT_SEQ>
+                generateCode(children.get(4)); //END
+            } break;
+
+            case "DECLARATION_SEGMENT":
+            {
+                List<ParseTreeNode> children = node.getChildren();
+
+                code.add("#All constants get stored in registers. These statements store the");
+                code.add("#constants for custom type array sizes. They are likely never used.");
+                generateCode(children.get(0));
+
+                code.add("#");
+                code.add("#Initialize variables, implicitly to 0, or explicitly to indicated value");
+                generateCode(children.get(1));
+
+                //after var declarations, jump to the main program code (don't want functions executing unless they're called)
+                code.add(instruction("goto", "_program_start", null, null));
+                code.add("#"); //prints blank line in debug mode
+
+                generateCode(children.get(2));
+            } break;
+
             case "VAR_DECLARATION":
             {
                 Map<String, Object> myAttributes = new HashMap<>();
@@ -235,7 +266,7 @@ public class TigerIrGenerator
                 if(myType.isArrayOfBaseType())
                 {
                     //initialize every entry in the array
-                    
+
                     String arraySize = "" + myType.getArraySize();
                     for (String register : idListRegisters)
                     {
