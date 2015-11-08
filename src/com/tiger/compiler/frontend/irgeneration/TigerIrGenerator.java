@@ -26,6 +26,11 @@ public class TigerIrGenerator
     private int nextTempRegister;
     private int nextBranchLabel;
 
+    //argument registers get numbered with this
+    //when expr_list_tail goes to null, this number gets reset to 0,
+    //since that function call is complete
+    private int argumentNumber;
+
     public TigerIrGenerator(ParseTreeNode parseTreeRoot,
                             Map<ParseTreeNode, Map<String, Object>> parseTreeAttributes,
                             Map<String, Symbol> globalSymbolTable)
@@ -38,6 +43,8 @@ public class TigerIrGenerator
         attributes = new HashMap<>();
         nextTempRegister = 0;
         nextBranchLabel = 0;
+
+        argumentNumber = 0;
     }
 
     public String[] generateCode()
@@ -163,13 +170,10 @@ public class TigerIrGenerator
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
 
-                if(node.getLiteralToken().equals("int1"))
-                {
-                    int zaou = 933993;
-                }
-
                 Map<String, Object> mySemanticAttributes = semanticAttributes.get(node);
                 String functionName = (String)mySemanticAttributes.get("functionName");
+
+                myAttributes.put("functionName", functionName);
 
                 String idName = node.getLiteralToken();
 
@@ -216,7 +220,6 @@ public class TigerIrGenerator
             case "FUNC_DECLARATION_LIST":
             case "TYPE_DECLARATION":
             case "RET_TYPE":
-            case "PARAM":
             case "STAT_SEQ":
             case "STAT_SEQ_CONT":
             case "TYPE_SYMBOL":
@@ -224,12 +227,7 @@ public class TigerIrGenerator
             case "EQUALITY_OP":
             case "ADD_SUB_OP":
             case "MUL_DIV_OP":
-            case "FUNC_CALL_END":
             case "TYPE_ID":
-            case "EXPR_LIST":
-            case "EXPR_LIST_TAIL":
-            case "PARAM_LIST":
-            case "PARAM_LIST_TAIL":
             {
                 List<ParseTreeNode> children = node.getChildren();
 
@@ -407,21 +405,26 @@ public class TigerIrGenerator
 
             case "FUNC_DECLARATION":
             {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
                 List<ParseTreeNode> children = node.getChildren();
 
                 generateCode(children.get(0)); //FUNCTION
                 generateCode(children.get(1)); //ID
 
                 String funcName = children.get(1).getLiteralToken();
+                myAttributes.put("functionBeingDeclared", funcName);
+                code.add("#");
+                code.add("___" + funcName + ":");
 
                 generateCode(children.get(2)); //LPAREN
                 generateCode(children.get(3)); //<PARAM_LIST>
+
                 generateCode(children.get(4)); //RPAREN
                 generateCode(children.get(5)); //<RET_TYPE>
                 generateCode(children.get(6)); //BEGIN
 
-                code.add("#");
-                code.add("___" + funcName + ":");
 
                 generateCode(children.get(7)); //<STAT_SEQ>
                 generateCode(children.get(8)); //END
@@ -446,6 +449,10 @@ public class TigerIrGenerator
                     Map<String, Object> idAttributes = attributes.get(children.get(0));
                     String idRegister = (String)idAttributes.get("register");
 
+                    //only used if STAT_ASSIGN_OR_FUNC is a function call. ignored otherwise
+                    myAttributes.put("functionBeingCalled", children.get(0).getLiteralToken());
+
+                    //only used if STAT_ASSIGN_OR_FUNC is an assignment. ignored otherwise
                     myAttributes.put("register", idRegister);
 
                     generateCode(children.get(1));
@@ -612,16 +619,21 @@ public class TigerIrGenerator
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
 
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+
                 List<ParseTreeNode> children = node.getChildren();
-                for(ParseTreeNode child: children)
-                {
-                    generateCode(child);
-                }
 
                 //<STAT_ASSIGN_OR_FUNC> -> <LVALUE_TAIL> ASSIGN <STAT_ASSIGN_RHS>
                 if(children.get(0).getNodeType() == NonterminalSymbol.LVALUE_TAIL)
                 {
-                    Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                    for(ParseTreeNode child: children)
+                    {
+                        generateCode(child);
+                    }
+
+                    I NEED TO STORE RESULT OF FUNCTION CANN IN LHS
+                        THEN, MAKE SURE FUNCTION CALL NOT IN ASSIGNMENT STATEMENT WORKS
+
                     String lhsRegister = (String)parentAttributes.get("register");
 
                     Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
@@ -642,7 +654,10 @@ public class TigerIrGenerator
                 //<STAT_ASSIGN_OR_FUNC> -> <FUNC_CALL_END>
                 else
                 {
+                    String funcName = (String)parentAttributes.get("functionBeingCalled");
+                    myAttributes.put("functionBeingCalled", funcName);
 
+                    generateCode(children.get(0));
                 }
             } break;
 
@@ -686,6 +701,11 @@ public class TigerIrGenerator
                 //<EXPR_OR_FUNC_END> -> <FUNC_CALL_END>
                 else if (children.get(0).getNodeType() == NonterminalSymbol.FUNC_CALL_END)
                 {
+
+                    Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                    String funcName = (String)parentAttributes.get("functionBeingCalled");
+                    myAttributes.put("functionBeingCalled", funcName);
+
                     generateCode(children.get(0));
                 }
             } break;
@@ -721,6 +741,7 @@ public class TigerIrGenerator
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
 
+
                 List<ParseTreeNode> children = node.getChildren();
 
                 //<STAT_ASSIGN_RHS> -> ID <EXPR_OR_FUNC_END>
@@ -730,7 +751,12 @@ public class TigerIrGenerator
                     Map<String, Object> idAttributes = attributes.get(children.get(0));
                     String idRegister = (String)idAttributes.get("register");
 
+                    //only used if <EXPR_OR_FUNC_END> is an expression
                     myAttributes.put("register", idRegister);
+
+                    //only used if <EXPR_OR_FUNC_END> is a function. ignored otherwise
+                    String funcName = children.get(0).getLiteralToken();
+                    myAttributes.put("functionBeingCalled", funcName);
 
                     generateCode(children.get(1));
                     Map<String, Object> exprOrFuncEndAttributes = attributes.get(children.get(1));
@@ -776,6 +802,115 @@ public class TigerIrGenerator
                     myAttributes.put("register", primeTermRegister);
                 }
             } break;
+
+
+            case "FUNC_CALL_END":
+            {
+                //<FUNC_CALL_END> -> LPAREN <EXPR_LIST> RPAREN
+
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                String funcName = (String)parentAttributes.get("functionBeingCalled");
+
+                myAttributes.put("functionBeingCalled", funcName);
+
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                    generateCode(child);
+
+            } break;
+
+            case "EXPR_LIST":
+            case "EXPR_LIST_TAIL":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                int offset = 0;
+                if(nodeTypeStr.equals("EXPR_LIST_TAIL"))
+                    offset = 1;
+
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                String funcName = (String)parentAttributes.get("functionBeingCalled");
+
+                myAttributes.put("functionBeingCalled", funcName);
+
+                List<ParseTreeNode> children = node.getChildren();
+
+                //<EXPR_LIST> -> NULL
+                //<EXPR_LIST_TAIL> -> NULL
+                if(children.isEmpty())
+                {
+                    argumentNumber = 0;
+                    return;
+                }
+                //<EXPR_LIST> -> <EXPR> <EXPR_LIST_TAIL>
+                //<EXPR_LIST> -> COMMA <EXPR> <EXPR_LIST_TAIL>
+                else
+                {
+                    generateCode(children.get(0 + offset));
+
+                    //we could generate both, then emit code, but if we generate the first expr,
+                    //emit code, then generate the tail, it emits the arguments in the same order they are in the source code
+                    Map<String, Object> exprAttributes = attributes.get(children.get(0 + offset));
+                    String exprRegister = (String)exprAttributes.get("register");
+                    String registerName = "__" + funcName + "_arg" + argumentNumber;
+                    argumentNumber++;
+
+                    code.add(instruction("assign", registerName, exprRegister, null));
+
+                    generateCode(children.get(1 + offset));
+                }
+            } break;
+
+            case "PARAM":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                String functionBeingDeclared = (String)parentAttributes.get("functionBeingDeclared");
+
+                List<ParseTreeNode> children = node.getChildren();
+                String paramName = children.get(0).getLiteralToken();
+
+                String argumentRegister = "__" + functionBeingDeclared + "_" + paramName;
+                String callSiteRegister = "__" + functionBeingDeclared + "_arg" + argumentNumber++;
+
+                code.add(instruction("assign", argumentRegister, callSiteRegister, null));
+            }
+
+
+            case "PARAM_LIST":
+            case "PARAM_LIST_TAIL":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                String functionBeingDeclared = (String)parentAttributes.get("functionBeingDeclared");
+                myAttributes.put("functionBeingDeclared", functionBeingDeclared);
+
+                int offset = 0;
+                if(nodeTypeStr.equals("PARAM_LIST_TAIL"))
+                    offset = 1;
+
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                {
+                    generateCode(child);
+                }
+
+                //<PARAM_LIST> -> NULL
+                //<PARAM_LIST_TAIL> -> NULL
+                if(children.isEmpty())
+                {
+                    argumentNumber = 0;
+                }
+            } break;
+
 
             case "EXPR":
             case "TERM1":
@@ -950,9 +1085,6 @@ public class TigerIrGenerator
                 {
                     generateCode(child);
                 }
-
-
-
 
                 //<FACTOR> -> LPAREN <EXPR> RPAREN
                 if(children.get(0).getNodeType() == Token.LPAREN)

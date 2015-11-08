@@ -15,7 +15,7 @@ let
         var afloat : float;
 
         var buffer : ArrayInt := 8;
-
+        
         function fillArray( int1 : int, int2 : int) : ArrayInt
         begin
         	/* 	
