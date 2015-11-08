@@ -16,7 +16,7 @@ let
 
         var buffer : ArrayInt := 8;
 
-        function fillArray( int1 : int, int1 : int) : ArrayInt
+        function fillArray( int1 : int, int2 : int) : ArrayInt
         begin
         	/* 	
         		Can assign base type to indices of array
@@ -31,8 +31,8 @@ let
 
         function fillArrayNoRetVal( int3 : int, int4: int)
         begin
-        	buffer[0] := int1;
-        	buffer[1] := int2;
+        	buffer[0] := int3;
+        	buffer[1] := int4;
 
         	/*
         		Unable to just type "return;" ...
@@ -62,19 +62,5 @@ in
 
 		enddo;
 
-        break;
-
-        j := 3;
-
-        f := k + z - randomLetters;
-
-        z := y + y;
-
-        z := 11;
-        z := notDeclared;
-        z := y * notDeclared;
-        z := y & notDeclared;
-        z := y - notDeclared;
-        z := y <> notDeclared;
-        z := y <= notDeclared;
+        buffer := fillArray(15, 10);
 end

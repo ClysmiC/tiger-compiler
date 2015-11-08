@@ -552,6 +552,9 @@ public class TigerSemanticAnalyzer
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
                 myAttributes.put("functionSymbolTable", functionSymbolTable);
 
+                String functionName = (String)parentAttributes.get("functionName");
+                myAttributes.put("functionName", functionName);
+
                 //Analyze children node
                 List<ParseTreeNode> children = node.getChildren();
                 for (ParseTreeNode child : children)
@@ -623,6 +626,9 @@ public class TigerSemanticAnalyzer
                 Map<String, Object> parentAttributes = attributes.get(node.getParent());
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
                 myAttributes.put("functionSymbolTable", functionSymbolTable);
+
+                String functionName = (String)parentAttributes.get("functionName");
+                myAttributes.put("functionName", functionName);
 
                 //need to store results of some children before analyzing future children,
                 //so defer child analysis to the individual cases STAT_ASSIGN_RHS can expand to
@@ -843,6 +849,9 @@ public class TigerSemanticAnalyzer
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
                 myAttributes.put("functionSymbolTable", functionSymbolTable);
 
+                String functionName = (String)parentAttributes.get("functionName");
+                myAttributes.put("functionName", functionName);
+
                 //Analyze children node
                 List<ParseTreeNode> children = node.getChildren();
                 for (ParseTreeNode child : children)
@@ -935,6 +944,9 @@ public class TigerSemanticAnalyzer
                 Map<String, Object> parentAttributes = attributes.get(node.getParent());
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
                 myAttributes.put("functionSymbolTable", functionSymbolTable);
+
+                String functionName = (String)parentAttributes.get("functionName");
+                myAttributes.put("functionName", functionName);
 
                 //Analyze children node
                 List<ParseTreeNode> children = node.getChildren();
@@ -1037,6 +1049,9 @@ public class TigerSemanticAnalyzer
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
                 myAttributes.put("functionSymbolTable", functionSymbolTable);
 
+                String functionName = (String)parentAttributes.get("functionName");
+                myAttributes.put("functionName", functionName);
+
                 //Analyze children node
                 List<ParseTreeNode> children = node.getChildren();
                 for (ParseTreeNode child : children)
@@ -1119,6 +1134,9 @@ public class TigerSemanticAnalyzer
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
                 myAttributes.put("functionSymbolTable", functionSymbolTable);
 
+                String functionName = (String)parentAttributes.get("functionName");
+                myAttributes.put("functionName", functionName);
+
                 //Analyze children node
                 List<ParseTreeNode> children = node.getChildren();
 
@@ -1156,6 +1174,9 @@ public class TigerSemanticAnalyzer
                 Map<String, Object> parentAttributes = attributes.get(node.getParent());
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
                 myAttributes.put("functionSymbolTable", functionSymbolTable);
+
+                String functionName = (String)parentAttributes.get("functionName");
+                myAttributes.put("functionName", functionName);
 
                 TypeSymbol leftType = (TypeSymbol) parentAttributes.get("type");
 

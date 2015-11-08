@@ -163,6 +163,10 @@ public class TigerIrGenerator
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
 
+                if(node.getLiteralToken().equals("int1"))
+                {
+                    int zaou = 933993;
+                }
 
                 Map<String, Object> mySemanticAttributes = semanticAttributes.get(node);
                 String functionName = (String)mySemanticAttributes.get("functionName");
@@ -416,7 +420,8 @@ public class TigerIrGenerator
                 generateCode(children.get(5)); //<RET_TYPE>
                 generateCode(children.get(6)); //BEGIN
 
-                code.add("funcName:");
+                code.add("#");
+                code.add("___" + funcName + ":");
 
                 generateCode(children.get(7)); //<STAT_SEQ>
                 generateCode(children.get(8)); //END
@@ -576,7 +581,7 @@ public class TigerIrGenerator
 
                 generateCode(children.get(2));
                 generateCode(children.get(3));
-                
+
                 code.add(instruction("goto", endIfLabel, null, null));
             } break;
 
