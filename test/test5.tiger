@@ -1,9 +1,23 @@
 let
         var a, b : int := 0;
 in
-        /*if(a >= b) then
-                a := b + 2;
-        endif;*/
+		a := 7;
+		b := 5;
+
+        if(a > b) then
+        	a := a - 10;
+
+        	if(a < b) then
+                a := b;
+            else
+	            if(a > b) then
+	                b := a;
+	            else
+	                a := 0;
+	                b := 0;
+	            endif;
+            endif;
+        endif;
 
         a := b+2;
         a := (5 * 3 - (2 / 3));

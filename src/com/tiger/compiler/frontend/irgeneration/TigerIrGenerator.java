@@ -221,8 +221,6 @@ public class TigerIrGenerator
             case "ADD_SUB_OP":
             case "MUL_DIV_OP":
             case "FUNC_CALL_END":
-            case "IF_STAT":
-            case "IF_END":
             case "TYPE_ID":
             case "EXPR_LIST":
             case "EXPR_LIST_TAIL":
@@ -448,12 +446,160 @@ public class TigerIrGenerator
                     generateCode(children.get(1));
                     generateCode(children.get(2));
                 }
+                //<STAT> -> WHILE <EXPR> DO <STAT_SEQ> ENDDO
+                else if (children.get(0).getNodeType() == Token.WHILE)
+                {
+                    generateCode(children.get(0));
+
+                    String loopLabel = "___WHILE_start" + nextBranchLabel;
+                    String loopEndLabel = "___WHILE_end" + nextBranchLabel;
+                    nextBranchLabel++;
+
+                    generateCode(children.get(0));
+
+                    code.add("#");
+                    code.add(loopLabel + ":");
+
+                    code.add("\t#Evaluate while loop condition.");
+                    generateCode(children.get(1));
+                    Map<String, Object> exprAttributes = attributes.get(children.get(1));
+                    String exprRegister = (String)exprAttributes.get("register");
+
+                    code.add("\t#Test while loop condition.");
+                    code.add(instruction("breq", exprRegister, "0", loopEndLabel));
+
+                    generateCode(children.get(2));
+                    generateCode(children.get(3));
+                    generateCode(children.get(4));
+
+                    code.add("\t#Return to top of loop.");
+                    code.add(instruction("goto", loopLabel, null, null));
+
+                    code.add("#");
+                    code.add(loopEndLabel + ":");
+                }
+                //<STAT> FOR ID ASSIGN <EXPR> TO <EXPR> DO <STAT_SEQ> ENDDO SEMI
+                else if (children.get(0).getNodeType() == Token.FOR)
+                {
+                    generateCode(children.get(0)); //FOR
+                    generateCode(children.get(1)); //ID
+                    generateCode(children.get(2)); //ASSIGN
+                    generateCode(children.get(3)); //<EXPR>
+                    generateCode(children.get(4)); //TO
+                    generateCode(children.get(5)); //<EXPR>
+                    generateCode(children.get(6)); //DO
+
+                    String loopLabel = "___FOR_start" + nextBranchLabel;
+                    String loopEndLabel = "___FOR_end" + nextBranchLabel;
+                    nextBranchLabel++;
+
+                    Map<String, Object> idAttributes = attributes.get(children.get(1));
+                    String idRegister = (String)idAttributes.get("register");
+
+                    Map<String, Object> lowerBoundAttributes = attributes.get(children.get(3));
+                    String lowerBoundRegister = (String)lowerBoundAttributes.get("register");
+
+                    Map<String, Object> upperBoundAttributes = attributes.get(children.get(5));
+                    String upperBoundRegister = (String)upperBoundAttributes.get("register");
+
+                    code.add("\t#Initialize for loop counter");
+                    code.add(instruction("assign", idRegister, lowerBoundRegister, null));
+
+                    code.add("#");
+                    code.add(loopLabel + ":");
+
+                    code.add("\t#Test for loop condition.");
+                    code.add(instruction("brgt", idRegister, upperBoundRegister, loopEndLabel));
+
+                    generateCode(children.get(7)); //<STAT_SEQ>
+
+                    generateCode(children.get(8));
+                    generateCode(children.get(9));
+
+                    code.add("\t#Increment for loop counter");
+                    code.add(instruction("add", idRegister, "1", idRegister));
+                    code.add("\t#Return to top of loop.");
+                    code.add(instruction("goto", loopLabel, null, null));
+
+                    code.add("#");
+                    code.add(loopEndLabel + ":");
+                }
+                //<STAT> -> <IF_STAT> <IF_END> SEMI
+                else if (children.get(0).getNodeType() == NonterminalSymbol.IF_STAT)
+                {
+                    generateCode(children.get(0));
+
+                    Map<String, Object> ifStatAttributes = attributes.get(children.get(0));
+                    String elseLabel = (String)ifStatAttributes.get("elseLabel");
+                    String endIfLabel = (String)ifStatAttributes.get("endIfLabel");
+
+                    myAttributes.put("elseLabel", elseLabel);
+                    myAttributes.put("endIfLabel", endIfLabel);
+
+                    generateCode(children.get(1));
+                    generateCode(children.get(2));
+                }
                 else
                 {
                     //TODO:
                     for(ParseTreeNode child: children)
                         generateCode(child);
                 }
+            } break;
+
+            case "IF_STAT":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                String elseLabel = "___ELSE_start" + nextBranchLabel;
+                String endIfLabel = "___IF_end" + nextBranchLabel;
+                nextBranchLabel++;
+
+                myAttributes.put("elseLabel", elseLabel);
+                myAttributes.put("endIfLabel", endIfLabel);
+
+                //<IF_STAT> -> IF <EXPR> THEN <STAT_SEQ>
+
+
+                code.add("\t#Evaluate if condition.");
+                List<ParseTreeNode> children = node.getChildren();
+                generateCode(children.get(0));
+                generateCode(children.get(1));
+
+                Map<String, Object> exprAttributes = attributes.get(children.get(1));
+                String exprRegister = (String)exprAttributes.get("register");
+
+                code.add("\t#Jump to else on false. If loop has no else clause,");
+                code.add("\t#the else label will be at the same spot as the endif label");
+                code.add(instruction("breq", exprRegister, "0", elseLabel));
+
+                generateCode(children.get(2));
+                generateCode(children.get(3));
+                
+                code.add(instruction("goto", endIfLabel, null, null));
+            } break;
+
+            case "IF_END":
+            {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                String elseLabel = (String)parentAttributes.get("elseLabel");
+                String endIfLabel = (String)parentAttributes.get("endIfLabel");
+
+                code.add("#");
+                code.add(elseLabel + ":");
+
+                List<ParseTreeNode> children = node.getChildren();
+                for(ParseTreeNode child: children)
+                {
+                    generateCode(child);
+                }
+
+                code.add("#");
+                code.add(endIfLabel + ":");
             } break;
 
             case "STAT_ASSIGN_OR_FUNC":

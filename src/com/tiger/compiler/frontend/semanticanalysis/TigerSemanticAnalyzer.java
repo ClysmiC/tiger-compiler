@@ -185,6 +185,10 @@ public class TigerSemanticAnalyzer
                 ParseTreeNode parent = node.getParent();
                 Map<String, Object> parentAttributes = attributes.get(parent);
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
+                String functionName = (String)parentAttributes.get("functionName");
+
+                myAttributes.put("functionSymbolTable", functionSymbolTable);
+                myAttributes.put("functionName", functionName);
 
                 Symbol symbol;
                 String id = node.getLiteralToken();
@@ -864,6 +868,9 @@ public class TigerSemanticAnalyzer
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
                 myAttributes.put("functionSymbolTable", functionSymbolTable);
 
+                String functionName = (String)parentAttributes.get("functionName");
+                myAttributes.put("functionName", functionName);
+
                 //Analyze children node
                 List<ParseTreeNode> children = node.getChildren();
                 for (ParseTreeNode child : children)
@@ -884,7 +891,22 @@ public class TigerSemanticAnalyzer
 
             case "IF_END":
             {
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
 
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
+                myAttributes.put("functionSymbolTable", functionSymbolTable);
+
+                String functionName = (String)parentAttributes.get("functionName");
+                myAttributes.put("functionName", functionName);
+
+                //Analyze children node
+                List<ParseTreeNode> children = node.getChildren();
+                for (ParseTreeNode child : children)
+                {
+                    analyze(child);
+                }
             }
             break;
 
