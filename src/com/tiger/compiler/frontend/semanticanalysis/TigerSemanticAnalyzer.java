@@ -54,6 +54,7 @@ public class TigerSemanticAnalyzer
      *
      * @param node
      */
+    @SuppressWarnings("unchecked") //the attributes are basically just dynamically typed variables and we cast the crap out of them
     private void analyze(ParseTreeNode node)
     {
         //since we are using an empty GrammarSymbol interface to store both Token enums and NonterminalSymbol enums

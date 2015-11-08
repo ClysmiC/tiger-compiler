@@ -67,6 +67,7 @@ public class TigerIrGenerator
      *
      * @param node
      */
+    @SuppressWarnings("unchecked") //the attributes are basically just dynamically typed variables and we cast the crap out of them
     private void generateCode(ParseTreeNode node)
     {
         //since we are using an empty GrammarSymbol interface to store both Token enums and NonterminalSymbol enums
@@ -971,7 +972,7 @@ public class TigerIrGenerator
                 String callSiteRegister = "_" + functionBeingDeclared + "_arg" + argumentNumber++;
 
                 code.add(instruction("assign", argumentRegister, callSiteRegister, null));
-            }
+            } break;
 
 
             case "PARAM_LIST":
