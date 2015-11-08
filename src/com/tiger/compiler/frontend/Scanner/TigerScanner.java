@@ -44,6 +44,7 @@ public class TigerScanner
 			fileInput.close();
 		} catch(Exception e) {
 			Output.println("File not found error: " + e.getMessage());
+			System.exit(0);
 		}
 
         charList.add('\0'); //add null character at end to denote EOF

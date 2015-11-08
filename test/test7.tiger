@@ -6,4 +6,8 @@ in
                 a[i] := a[i] + a[i-1];
                 printi(a[i]);
         enddo;
+
+        break;
+
+        a + + +
 end

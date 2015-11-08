@@ -18,6 +18,11 @@ public class TigerParser
     private TigerScanner tigerScanner;
     private ParserTable parserTable;
 
+    private GrammarSymbol focus;
+    private GrammarSymbol lookAhead;
+
+    private Stack<GrammarSymbol> stack;
+
     //Hold onto certain values so that if a semantic action is required (such as putting
     //something in a symbol table), we have all the info we need.
     private String latestId;
@@ -27,7 +32,7 @@ public class TigerParser
     private float latestFloatLit;
 
     private Stack<Object> semanticStack;
-    int loopLevel;
+    int loopLevel; //ensures "break" gets called at valid spot
     private boolean error;
 
     /**
@@ -51,14 +56,13 @@ public class TigerParser
 
         semanticStack = new Stack<>();
         loopLevel = 0;
+
+        error = false;
     }
 
     public void parse()
     {
-        GrammarSymbol focus;
-        GrammarSymbol lookAhead;
-
-        Stack<GrammarSymbol> stack = new Stack<>();
+        stack = new Stack<>();
         stack.add(Token.EOF);
         stack.add(NonterminalSymbol.TIGER_PROGRAM);
 
@@ -70,7 +74,7 @@ public class TigerParser
         Tuple<Token, String> token;
 
         token = tigerScanner.nextToken();
-        Output.debugPrintln(token.x.toString());
+        Output.tokenPrintln(token.x.name());
 
         lookAhead = token.x;
 
@@ -78,8 +82,6 @@ public class TigerParser
         {
             if (focus == Token.EOF && lookAhead == Token.EOF)
             {
-                Output.debugPrintln(!tigerScanner.isErrorRaised() && !error ? "\nSuccessful parse\n" : "\nUnsuccessful parse");
-
                 return; //done parsing :)
             }
             else if (focus instanceof Token)
@@ -126,7 +128,7 @@ public class TigerParser
                     token = tigerScanner.nextToken();
                     lookAhead = token.x;
 
-                    Output.debugPrintln(token.x.toString());
+                    Output.tokenPrintln(token.x.name());
                 }
                 else
                 {
@@ -134,7 +136,8 @@ public class TigerParser
                     errorString += "\nUnexpected token found: " + lookAhead;
                     errorString += "\nExpected token: " + focus;
 
-                    stopParsingAndExit(errorString);
+                    reportErrorAndSkipAhead(errorString);
+                    continue;
                 }
             }
             else if (focus instanceof NonterminalSymbol)
@@ -149,7 +152,8 @@ public class TigerParser
                     //TODO: suggest tokens
                     //TODO: recover from error and continue parse
 
-                    stopParsingAndExit(errorString);
+                    reportErrorAndSkipAhead(errorString);
+                    continue;
                 }
 
                 stack.pop();
@@ -232,6 +236,7 @@ public class TigerParser
                         {
                             Output.println("(symbol table error): Line " + tigerScanner.getLineNum());
                             Output.println("\"" + id + "\" already exists in symbol table. Could not create new type\n");
+                            error = true;
                         }
                         else
                         {
@@ -259,6 +264,7 @@ public class TigerParser
                             {
                                 Output.println("(symbol table error): Line " + tigerScanner.getLineNum());
                                 Output.println("\"" + id + "\" already exists in symbol table. Could not create new variable\n");
+                                error = true;
                             }
                             else
                             {
@@ -322,7 +328,7 @@ public class TigerParser
                                     {
                                         Output.println("(symbol table error): Line " + tigerScanner.getLineNum());
                                         Output.println("Repeat parameter name \"" + param.getName() + "\" in function \"" + function.getName() + "\"\n");
-                                        break;
+                                        error = true;
                                     }
 
                                     functionSymbolTable.put(param.getName(), param);
@@ -332,6 +338,7 @@ public class TigerParser
                                 {
                                     Output.println("(symbol table error): Line " + tigerScanner.getLineNum());
                                     Output.println("\"" + id + "\" already exists in symbol table. Could not create new variable.\n");
+                                    error = true;
                                 }
                                 else
                                 {
@@ -373,34 +380,51 @@ public class TigerParser
         }
     }
 
-    private void stopParsingAndExit(String debugMessage)
+    /**
+     * Prints the reported error, and then skips any tokens/rules until a semi colon is reached. Begins parsing again
+     * from that point
+     * @param errorString
+     */
+    private void reportErrorAndSkipAhead(String errorString)
     {
-        if(!debugMessage.isEmpty())
-            Output.println("\n" + debugMessage + "\n");
+        error = true;
+        Output.println("\n" + errorString + "\n");
 
-        //print the rest of the scan. useful for detecting multiple scanner errors
-        while(true)
+        GrammarSymbol symbol;
+
+        symbol = stack.pop();
+        while(symbol != Token.SEMI && symbol != Token.EOF)
         {
+            if(stack.isEmpty())
+                System.exit(-1); //shouldn't happen. the bottom of the stack should always be EOF
 
-            Tuple<Token, String> token = tigerScanner.nextToken();
-
-            //print token type
-            if(token.x != Token.ERROR)
-            {
-                Output.debugPrintln(token.x.toString());
-            }
-            else
-            {
-                Output.println("\n" + token.y + "\n"); //error message
-            }
-
-            if(token.x == Token.EOF)
-                break;
+            symbol = stack.pop();
         }
 
-        Output.println("\nUnsuccessful parse");
+        if(symbol == Token.EOF)
+        {
+            //parse wasn't far enough to really have a point to recover to
+            System.exit(0);
+        }
 
-        System.exit(1);
+        Token token = tigerScanner.nextToken().x;
+        Output.tokenPrintln(token.name());
+
+        while(token != Token.SEMI && token != Token.EOF)
+        {
+            token = tigerScanner.nextToken().x;
+            Output.tokenPrintln(token.name());
+        }
+
+        if(token == Token.EOF)
+        {
+            Output.println("(parser error): Line " + tigerScanner.getLineNum());
+            Output.println("Unexpected end of file reached.");
+            System.exit(0);
+        }
+
+        lookAhead = tigerScanner.nextToken().x;
+        focus = stack.peek();
     }
 
     /**
@@ -408,6 +432,9 @@ public class TigerParser
      */
     public ParseTreeNode getParseTree()
     {
+        if(error)
+            return null;
+
         return parseTreeRoot;
     }
 
