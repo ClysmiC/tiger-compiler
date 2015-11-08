@@ -5,7 +5,7 @@ let
 
         /*var x : int := 0;*/
         var y : int := 2;
-        var z : int := 0;
+        var z : float := 0;
         var loopCounter : int;
 
         var f1 : Float1 := 5;
@@ -15,7 +15,7 @@ let
         var afloat : float;
 
         var buffer : ArrayInt := 8;
-        
+
         function fillArray( int1 : int, int2 : int) : ArrayInt
         begin
         	/* 	
@@ -55,12 +55,15 @@ in
 		do
 			z := z + 1;
 
-			if(z > 0)
+			if(z > 0.0)
 			then
 				break;
 			endif;
 
 		enddo;
 
+        z := 4;
+
         buffer := fillArray(15, 10);
+        fillArrayNoRetVal(3, 7);
 end

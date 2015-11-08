@@ -672,6 +672,14 @@ public class TigerSemanticAnalyzer
                         }
 
                         FunctionSymbol function = (FunctionSymbol) funcSymbol;
+
+                        if(function.getReturnType() == null)
+                        {
+                            addSemanticError("Void function \"" + funcId + "\" cannot be RHS of assignment.", node.getLineNumber());
+                            myAttributes.put("type", null);
+                            return;
+                        }
+
                         myAttributes.put("type", function.getReturnType());
 
                         List<TypeSymbol> paramTypes = (List<TypeSymbol>) exprOrFuncEndAttributes.get("typeList"); //parameters

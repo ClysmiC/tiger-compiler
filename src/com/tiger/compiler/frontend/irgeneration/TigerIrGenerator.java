@@ -5,6 +5,7 @@ import com.tiger.compiler.frontend.GrammarSymbol;
 import com.tiger.compiler.frontend.Token;
 import com.tiger.compiler.frontend.parser.NonterminalSymbol;
 import com.tiger.compiler.frontend.parser.parsetree.ParseTreeNode;
+import com.tiger.compiler.frontend.parser.symboltable.FunctionSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
 
@@ -631,9 +632,6 @@ public class TigerIrGenerator
                         generateCode(child);
                     }
 
-                    I NEED TO STORE RESULT OF FUNCTION CANN IN LHS
-                        THEN, MAKE SURE FUNCTION CALL NOT IN ASSIGNMENT STATEMENT WORKS
-
                     String lhsRegister = (String)parentAttributes.get("register");
 
                     Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
@@ -658,6 +656,18 @@ public class TigerIrGenerator
                     myAttributes.put("functionBeingCalled", funcName);
 
                     generateCode(children.get(0));
+
+                    FunctionSymbol function = (FunctionSymbol)globalSymbolTable.get(funcName);
+                    int numParams = function.getParameterList().size();
+
+                    String functionCall = "call, " + funcName;
+
+                    for(int i = 0; i < numParams; i++)
+                    {
+                        functionCall += ", __" + funcName + "_arg" + i;
+                    }
+
+                    code.add("\t" + functionCall);
                 }
             } break;
 
@@ -707,6 +717,24 @@ public class TigerIrGenerator
                     myAttributes.put("functionBeingCalled", funcName);
 
                     generateCode(children.get(0));
+
+                    String resultRegister = "_t" + nextTempRegister++;
+                    FunctionSymbol function = (FunctionSymbol)globalSymbolTable.get(funcName);
+
+                    int numParams = function.getParameterList().size();
+
+                    //parameters were already stored in registers in <FUNC_CALL_END>
+                    //register names are __funcName_arg0, __funcName_arg1, etc...
+
+                    String funcCallString = "callr, " + resultRegister + ", " + funcName;
+                    for(int i = 0; i < numParams; i++)
+                    {
+                        funcCallString += ", __" + funcName + "_arg" + i;
+                    }
+
+                    code.add("\t" + funcCallString);
+
+                    myAttributes.put("register", resultRegister);
                 }
             } break;
 
@@ -751,7 +779,6 @@ public class TigerIrGenerator
                     Map<String, Object> idAttributes = attributes.get(children.get(0));
                     String idRegister = (String)idAttributes.get("register");
 
-                    //only used if <EXPR_OR_FUNC_END> is an expression
                     myAttributes.put("register", idRegister);
 
                     //only used if <EXPR_OR_FUNC_END> is a function. ignored otherwise
