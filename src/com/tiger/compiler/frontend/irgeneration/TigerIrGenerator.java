@@ -25,7 +25,11 @@ public class TigerIrGenerator
     private List<String> code;
 
     private int nextTempRegister;
-    private int nextBranchLabel;
+    private int nextIfLabel;
+    private int nextForLabel;
+    private int nextWhileLabel;
+    private int nextEqualityOpLabel;
+    private int nextInequalityOpLabel;
 
     //argument registers get numbered with this
     //when expr_list_tail goes to null, this number gets reset to 0,
@@ -43,7 +47,11 @@ public class TigerIrGenerator
         code = new LinkedList<String>();
         attributes = new HashMap<>();
         nextTempRegister = 0;
-        nextBranchLabel = 0;
+        nextIfLabel = 0;
+        nextForLabel = 0;
+        nextWhileLabel = 0;
+        nextEqualityOpLabel = 0;
+        nextInequalityOpLabel = 0;
 
         argumentNumber = 0;
     }
@@ -180,7 +188,7 @@ public class TigerIrGenerator
 
                 if(functionName == null) //not in a function
                 {
-                    myAttributes.put("register", "_" + idName);
+                    myAttributes.put("register", idName);
                 }
                 else
                 {
@@ -190,11 +198,11 @@ public class TigerIrGenerator
 
                     if(param == null) //it is a global variable, not a param
                     {
-                        myAttributes.put("register", "_" + idName);
+                        myAttributes.put("register", idName);
                     }
                     else //it is a parameter
                     {
-                        myAttributes.put("register", "__" + functionName + "_" + idName);
+                        myAttributes.put("register", "_" + functionName + "_" + idName);
                     }
                 }
             } break;
@@ -216,13 +224,10 @@ public class TigerIrGenerator
             /**************************
              * NONTERMINALS
              **************************/
-            case "TYPE_DECLARATION_LIST":
             case "VAR_DECLARATION_LIST":
             case "FUNC_DECLARATION_LIST":
             case "TYPE_DECLARATION":
             case "RET_TYPE":
-            case "STAT_SEQ":
-            case "STAT_SEQ_CONT":
             case "TYPE_SYMBOL":
             case "INEQUALITY_OP":
             case "EQUALITY_OP":
@@ -236,6 +241,14 @@ public class TigerIrGenerator
                     generateCode(child);
             } break;
 
+
+            case "TYPE_DECLARATION_LIST":
+            {
+                //if we generated code for children, it would store any intlits (used in array declarations)
+                //into buffers that never get used. so simply skip this part of the parse tree.
+                return;
+            }
+
             case "TIGER_PROGRAM":
             {
                 List<ParseTreeNode> children = node.getChildren();
@@ -244,8 +257,10 @@ public class TigerIrGenerator
                 generateCode(children.get(1)); //<DECLARATION_SEGMENT>
                 generateCode(children.get(2)); //IN
 
-                code.add("#Body of the actual program begins here.");
-                code.add("___program_start:");
+                code.add("#");
+                code.add("#");
+                code.add("##########Body of the actual program begins here##########");
+                code.add("program_start:");
 
                 generateCode(children.get(3)); //<STAT_SEQ>
                 generateCode(children.get(4)); //END
@@ -254,12 +269,9 @@ public class TigerIrGenerator
             case "DECLARATION_SEGMENT":
             {
                 List<ParseTreeNode> children = node.getChildren();
-
-                code.add("#All constants get stored in registers. These statements store the");
-                code.add("#constants for custom type array sizes. They are likely never used.");
                 generateCode(children.get(0));
 
-                code.add("#");
+                code.add("##########START OF IR##########");
                 code.add("#Initialize variables, implicitly to 0, or explicitly to indicated value");
                 generateCode(children.get(1));
 
@@ -267,6 +279,8 @@ public class TigerIrGenerator
                 code.add(instruction("goto", "_program_start", null, null));
                 code.add("#"); //prints blank line in debug mode
 
+                code.add("#");
+                code.add("#Define functions, with the same labels as their names in the symbol table.");
                 generateCode(children.get(2));
             } break;
 
@@ -417,7 +431,7 @@ public class TigerIrGenerator
                 String funcName = children.get(1).getLiteralToken();
                 myAttributes.put("functionBeingDeclared", funcName);
                 code.add("#");
-                code.add("___" + funcName + ":");
+                code.add("" + funcName + ":");
 
                 generateCode(children.get(2)); //LPAREN
                 generateCode(children.get(3)); //<PARAM_LIST>
@@ -431,6 +445,13 @@ public class TigerIrGenerator
                 generateCode(children.get(8)); //END
                 generateCode(children.get(9)); //SEMI
 
+                FunctionSymbol function = (FunctionSymbol)globalSymbolTable.get(funcName);
+                TypeSymbol returnType = function.getReturnType();
+
+                //void functions don't have return statements in source code, so throw a return
+                //at the bottom of the function decl
+                if(returnType == null)
+                    code.add(instruction("return", null, null, null));
             } break;
 
 
@@ -441,7 +462,12 @@ public class TigerIrGenerator
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
 
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                String breakLabel = (String)parentAttributes.get("breakLabel");
+                myAttributes.put("breakLabel", breakLabel);
+
                 List<ParseTreeNode> children = node.getChildren();
+
 
                 //<STAT> -> ID <STAT_ASSIGN_OR_FUNC> SEMI
                 if(children.get(0).getNodeType() == Token.ID)
@@ -464,9 +490,11 @@ public class TigerIrGenerator
                 {
                     generateCode(children.get(0));
 
-                    String loopLabel = "___WHILE_start" + nextBranchLabel;
-                    String loopEndLabel = "___WHILE_end" + nextBranchLabel;
-                    nextBranchLabel++;
+                    String loopLabel = "_WHILE_start" + nextWhileLabel;
+                    String loopEndLabel = "_WHILE_end" + nextWhileLabel;
+                    nextWhileLabel++;
+
+                    myAttributes.put("breakLabel", loopEndLabel);
 
                     generateCode(children.get(0));
 
@@ -502,9 +530,11 @@ public class TigerIrGenerator
                     generateCode(children.get(5)); //<EXPR>
                     generateCode(children.get(6)); //DO
 
-                    String loopLabel = "___FOR_start" + nextBranchLabel;
-                    String loopEndLabel = "___FOR_end" + nextBranchLabel;
-                    nextBranchLabel++;
+                    String loopLabel = "_FOR_start" + nextForLabel;
+                    String loopEndLabel = "_FOR_end" + nextForLabel;
+                    nextForLabel++;
+
+                    myAttributes.put("breakLabel", loopEndLabel);
 
                     Map<String, Object> idAttributes = attributes.get(children.get(1));
                     String idRegister = (String)idAttributes.get("register");
@@ -552,12 +582,40 @@ public class TigerIrGenerator
                     generateCode(children.get(1));
                     generateCode(children.get(2));
                 }
-                else
+                //<STAT> -> RETURN <EXPR> SEMI
+                else if(children.get(0).getNodeType() == Token.RETURN)
                 {
-                    //TODO:
                     for(ParseTreeNode child: children)
                         generateCode(child);
+
+                    Map<String, Object> exprAttributes = attributes.get(children.get(1));
+                    String exprRegister = (String)exprAttributes.get("register");
+
+                    code.add(instruction("return", exprRegister, null, null));
                 }
+                else if(children.get(0).getNodeType() == Token.BREAK)
+                {
+                    code.add(instruction("goto", breakLabel, null, null));
+                }
+            } break;
+
+            case "STAT_SEQ":
+            case "STAT_SEQ_CONT":
+            {
+                //<STAT_SEQ> -> <STAT> <STAT_SEQ_CONT>
+                //<STAT_SEQ_CONT> -> <STAT_SEQ>
+                //<STAT_SEQ_CONT> -> NULL
+
+                Map<String, Object> myAttributes = new HashMap<>();
+                attributes.put(node, myAttributes);
+
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+
+                if(parentAttributes != null && parentAttributes.containsKey("breakLabel"))
+                    myAttributes.put("breakLabel", parentAttributes.get("breakLabel"));
+
+                for(ParseTreeNode child: node.getChildren())
+                    generateCode(child);
             } break;
 
             case "IF_STAT":
@@ -565,9 +623,13 @@ public class TigerIrGenerator
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
 
-                String elseLabel = "___ELSE_start" + nextBranchLabel;
-                String endIfLabel = "___IF_end" + nextBranchLabel;
-                nextBranchLabel++;
+                Map<String, Object> parentAttributes = attributes.get(node.getParent());
+                String breakLabel = (String)parentAttributes.get("breakLabel");
+                myAttributes.put("breakLabel", breakLabel);
+
+                String elseLabel = "_ELSE_start" + nextIfLabel;
+                String endIfLabel = "_IF_end" + nextIfLabel;
+                nextIfLabel++;
 
                 myAttributes.put("elseLabel", elseLabel);
                 myAttributes.put("endIfLabel", endIfLabel);
@@ -660,6 +722,8 @@ public class TigerIrGenerator
                     FunctionSymbol function = (FunctionSymbol)globalSymbolTable.get(funcName);
                     int numParams = function.getParameterList().size();
 
+                    code.add("\t#Function may or may not have return type. But since its return value");
+                    code.add("\t#(if it has one) is unused, simply use \"call\" instead of \"callr\".");
                     String functionCall = "call, " + funcName;
 
                     for(int i = 0; i < numParams; i++)
@@ -903,8 +967,8 @@ public class TigerIrGenerator
                 List<ParseTreeNode> children = node.getChildren();
                 String paramName = children.get(0).getLiteralToken();
 
-                String argumentRegister = "__" + functionBeingDeclared + "_" + paramName;
-                String callSiteRegister = "__" + functionBeingDeclared + "_arg" + argumentNumber++;
+                String argumentRegister = "_" + functionBeingDeclared + "_" + paramName;
+                String callSiteRegister = "_" + functionBeingDeclared + "_arg" + argumentNumber++;
 
                 code.add(instruction("assign", argumentRegister, callSiteRegister, null));
             }
@@ -1047,9 +1111,9 @@ public class TigerIrGenerator
                         if(childNodeType == NonterminalSymbol.EQUALITY_OP)
                         {
 
-                            String takeBranchLabel = "___EQ_OR_NEQ_true" + nextBranchLabel;
-                            String skipBranchLabel = "___EQ_OR_NEQ_false" + nextBranchLabel;
-                            nextBranchLabel++;
+                            String takeBranchLabel = "_EQ_true" + nextEqualityOpLabel;
+                            String skipBranchLabel = "_EQ_false" + nextEqualityOpLabel;
+                            nextEqualityOpLabel++;
 
                             String resultIfEqual = (operation == Token.EQ) ? "1" : "0";
                             String resultIfNotEqual = (operation == Token.EQ) ? "0" : "1";
@@ -1066,9 +1130,9 @@ public class TigerIrGenerator
                         }
                         else //INEQUALITY OP
                         {
-                            String takeBranchLabel = "___INEQ_true" + nextBranchLabel;
-                            String skipBranchLabel = "___INEQ_false" + nextBranchLabel;
-                            nextBranchLabel++;
+                            String takeBranchLabel = "_INEQ_true" + nextInequalityOpLabel;
+                            String skipBranchLabel = "_INEQ_false" + nextInequalityOpLabel;
+                            nextInequalityOpLabel++;
 
                             boolean takeBranchIfEq = (operation == Token.LESSEREQ || operation == Token.GREATEREQ);
                             String opString = (operation == Token.LESSER || operation == Token.LESSEREQ) ? "brlt" : "brgt";

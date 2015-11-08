@@ -477,6 +477,11 @@ public class TigerSemanticAnalyzer
                 //<STAT> -> RETURN <EXPR> SEMI
                 else if (children.get(0).getNodeType() == Token.RETURN)
                 {
+                    if(functionName == null)
+                    {
+                        addSemanticError("Return statement cannot exist outside of function declaration.", node.getLineNumber());
+                        return;
+                    }
                     FunctionSymbol functionSymbol = (FunctionSymbol) globalSymbolTable.get(functionName);
                     TypeSymbol expectedReturnType = functionSymbol.getReturnType();
 
