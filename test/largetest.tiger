@@ -62,8 +62,6 @@ in
 
 		enddo;
 
-        z := 4;
-
         buffer := fillArray(15, 10);
         fillArrayNoRetVal(3, 7);
 end

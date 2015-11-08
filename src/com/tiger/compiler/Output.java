@@ -1,5 +1,10 @@
 package com.tiger.compiler;
 
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+
 /**
  * Created by Andrew on 10/7/2015.
  */
@@ -12,6 +17,9 @@ public class Output
     public static boolean printIrComments = false;
     public static boolean printToFile = false;
 
+    private static PrintWriter out = null;
+    private static String outputName = null;
+
     private Output()
     {
     }
@@ -21,8 +29,10 @@ public class Output
     //they want to print on a line together, before passing the string to this class
     public static void println(String str)
     {
-        //TODO: print to file as well
         System.out.println(str);
+
+        if(out != null)
+            out.println(str);
     }
 
     public static void tokenPrintln(String str)
@@ -63,5 +73,31 @@ public class Output
         {
             Output.println(str);
         }
+    }
+
+    public static void setOutputFileName(String str)
+    {
+        try
+        {
+            outputName = (str);
+            out = new PrintWriter(new BufferedWriter(new FileWriter(outputName)));
+        }
+        catch(Exception e)
+        {
+            //couldn't open file writer... just don't output to file
+            out = null;
+            outputName = null;
+        }
+    }
+
+    public static void closeOutputFile()
+    {
+        if(out != null)
+            out.close();
+    }
+
+    public static String getOutputFileName()
+    {
+        return outputName;
     }
 }

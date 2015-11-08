@@ -5,3 +5,6 @@
 # IntelliJ stuff
 /.idea/
 *.iml
+
+# compiler output files
+*.out

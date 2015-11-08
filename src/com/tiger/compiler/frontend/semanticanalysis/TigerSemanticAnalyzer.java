@@ -73,7 +73,7 @@ public class TigerSemanticAnalyzer
         }
         else
         {
-            Output.println("Fatal error: Compiler failed to cast parse tree node type to either a token or nonterminal." +
+            Output.println("Internal compiler error: Compiler failed to cast parse tree node type to either a token or nonterminal." +
                     "Perhaps you put semantic actions in your parse tree?");
             System.exit(-1);
         }

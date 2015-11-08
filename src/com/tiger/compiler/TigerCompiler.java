@@ -1,5 +1,6 @@
 package com.tiger.compiler;
 
+import com.sun.corba.se.impl.orbutil.ObjectUtility;
 import com.tiger.compiler.frontend.irgeneration.TigerIrGenerator;
 import com.tiger.compiler.frontend.parser.TigerParser;
 import com.tiger.compiler.frontend.parser.parsetree.ParseTreeNode;
@@ -7,10 +8,7 @@ import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.scanner.TigerScanner;
 import com.tiger.compiler.frontend.semanticanalysis.TigerSemanticAnalyzer;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by Andrew on 10/7/2015.
@@ -24,7 +22,13 @@ public class TigerCompiler
         if (args.length < 1)
             valid = false;
 
-        List<String> validOptions = Arrays.asList("-t", "-pt", "-st", "-ir", "-irc", "-all", "-allc", "-o");
+        if(!args[0].toLowerCase().endsWith(".tiger"))
+            valid = false;
+
+        if(args.length == 2 && args[1].equals("-o"))
+            valid = false;
+
+        List<String> validOptions = new ArrayList<>(Arrays.asList("-t", "-pt", "-st", "-ir", "-irc", "-all", "-allc", "-o"));
 
         for (int i = 1; i < args.length; i++)
         {
@@ -89,18 +93,28 @@ public class TigerCompiler
         {
             System.out.println("Usage: java TigerCompiler <input-file>.tiger [options]");
             System.out.println("Flags:");
-            System.out.println("\t-t : print tokens as they are scanned.");
-            System.out.println("\t-pt : print the parse tree after successful parse.");
-            System.out.println("\t-st : print the symbol table after successful parse.");
-            System.out.println("\t-ir : print the IR code. May not be used with -irc flag.");
-            System.out.println("\t-irc : print the IR code with comments to make it more human readable.\nMay not be used with -ir flag.");
-            System.out.println("\t-all : shorthand for -t -p -st -ir. May not be used with -irc or -allc flags.");
-            System.out.println("\t-allc : shorthand for -t -p -st -irc. May not be used with -ir or -all flags.");
-            System.out.println("\t-o : output to file named \"<input-file>.out\"");
+            System.out.println("\t-t    : Print tokens as they are scanned.");
+            System.out.println("\t-pt   : Print the parse tree after successful parse.");
+            System.out.println("\t-st   : Print the symbol table after successful parse.");
+            System.out.println("\t-ir   : Print the IR code. May not be used with -irc flag.");
+            System.out.println("\t-irc  : Print the IR code with comments to make it more human readable.\n\t        May not be used with -ir flag.");
+            System.out.println("\t-all  : Shorthand for -t -p -st -ir. May not be used with -irc or -allc flags.");
+            System.out.println("\t-allc : Shorthand for -t -p -st -irc. May not be used with -ir or -all flags.");
+            System.out.println("\t-o    : Output to file named \"<input-file>.out\". May not be used unless\n\t        other flag(s) are set.");
             System.exit(0);
         }
 
         TigerScanner scanner = new TigerScanner(args[0]);
+
+        //if we made it this far, it means scanner didn't throw a file not found error,
+        //so we are safe to set the file output for Output
+        if(Output.printToFile)
+        {
+            String outputFile = args[0].substring(0, args[0].length() - ".tiger".length());
+            outputFile += ".out";
+            Output.setOutputFileName(outputFile);
+        }
+
         TigerParser parser = new TigerParser(scanner);
 
         parser.parse();
@@ -108,49 +122,82 @@ public class TigerCompiler
         ParseTreeNode parseTreeRoot = parser.getParseTree();
         Map<String, Symbol> globalSymbolTable = parser.getGlobalSymbolTable();
 
-        //can't really walk an invalid parse tree. error was reported already, so just exit
-        if(parseTreeRoot == null)
-            System.exit(0);
 
-        TigerSemanticAnalyzer semanticAnalyzer = new TigerSemanticAnalyzer(parseTreeRoot, globalSymbolTable);
-        String[] errors = semanticAnalyzer.analyze();
 
-        //PRINT SYMBOL TABLE
-        for(String symbolId: globalSymbolTable.keySet())
+
+        if(parseTreeRoot != null)
         {
-            Output.symbolTablePrintln(globalSymbolTable.get(symbolId) + "\n");
-        }
-
-        //PRINT PARSE TREE
-        Output.parseTreePrintln(parseTreeRoot.nodeToString(0));
-
-        if(errors.length == 0)
-        {
-            TigerIrGenerator ir = new TigerIrGenerator(parseTreeRoot, semanticAnalyzer.getParseTreeAttributes(), globalSymbolTable);
-            String[] code = ir.generateCode();
-
-            //PRINT IR CODE
-            for(String codeLine: code)
+            //PRINT SYMBOL TABLE
+            Output.symbolTablePrintln("");
+            for (String symbolId : globalSymbolTable.keySet())
             {
-                //Only print comments in debug mode
-                if(codeLine.trim().startsWith("#"))
+                Output.symbolTablePrintln(globalSymbolTable.get(symbolId) + "\n");
+            }
+
+
+            //PRINT PARSE TREE
+            Output.parseTreePrintln("");
+            Output.parseTreePrintln(parseTreeRoot.nodeToString(0));
+
+            TigerSemanticAnalyzer semanticAnalyzer = new TigerSemanticAnalyzer(parseTreeRoot, globalSymbolTable);
+            String[] errors = semanticAnalyzer.analyze();
+
+            if (errors.length == 0)
+            {
+                TigerIrGenerator ir = new TigerIrGenerator(parseTreeRoot, semanticAnalyzer.getParseTreeAttributes(), globalSymbolTable);
+                String[] code = ir.generateCode();
+
+                //PRINT IR CODE
+                Output.irPrintln("");
+                for (String codeLine : code)
                 {
-                    if(codeLine.length() == 1)
-                        Output.irPrintln("");
+                    //Only print comments in debug mode
+                    if (codeLine.trim().startsWith("#"))
+                    {
+                        if (codeLine.length() == 1)
+                            Output.irPrintln("");
+                        else
+                            Output.irPrintln(codeLine);
+                    }
                     else
+                    {
                         Output.irPrintln(codeLine);
+                    }
                 }
-                else
+            }
+            else
+            {
+                for (String error : errors)
                 {
-                    Output.println(codeLine);
+                    Output.println(error + "\n");
                 }
+
+                Output.irPrintln("Semantic analysis failed. Cannot print IR code.\n");
             }
         }
         else
         {
-            for (String error : errors)
+            Output.symbolTablePrintln("\nParse failed. Cannot print symbol table.");
+            Output.parseTreePrintln("Parse failed. Cannot print parse tree.");
+            Output.irPrintln("Parse failed. Cannot print IR code.");
+        }
+
+        //store this before closing the file
+        String outFileName = Output.getOutputFileName();
+
+        Output.closeOutputFile();
+        Output.println("\nComplete.");
+
+
+        if(Output.printToFile)
+        {
+            if(outFileName == null)
             {
-                Output.println(error + "\n");
+                Output.println("Unable to print output to file.");
+            }
+            else
+            {
+                Output.println("Output printed to file " + outFileName);
             }
         }
     }

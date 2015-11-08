@@ -43,7 +43,7 @@ public class TigerScanner
 
 			fileInput.close();
 		} catch(Exception e) {
-			Output.println("File not found error: " + e.getMessage());
+			Output.println("(FATAL ERROR): " + filename + " not found.");
 			System.exit(0);
 		}
 

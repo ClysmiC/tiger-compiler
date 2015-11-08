@@ -35,6 +35,10 @@ public class TigerParser
     int loopLevel; //ensures "break" gets called at valid spot
     private boolean error;
 
+    //error so bad that we can't continue to parse (eg, unable to match a rule while there aren't any
+    //semicolons on the parse stack to fall back and recover to
+    private boolean fatalError;
+
     /**
      * Because of the way Tiger is structured, everything is global, EXCEPT
      * parameters to functions, which are scoped to that function. These params
@@ -58,6 +62,7 @@ public class TigerParser
         loopLevel = 0;
 
         error = false;
+        fatalError = false;
     }
 
     public void parse()
@@ -80,6 +85,9 @@ public class TigerParser
 
         while (true)
         {
+            if(fatalError)
+                return;
+
             if (focus == Token.EOF && lookAhead == Token.EOF)
             {
                 return; //done parsing :)
@@ -396,7 +404,10 @@ public class TigerParser
         while(symbol != Token.SEMI && symbol != Token.EOF)
         {
             if(stack.isEmpty())
-                System.exit(-1); //shouldn't happen. the bottom of the stack should always be EOF
+            {
+                fatalError = true;
+                return;
+            }
 
             symbol = stack.pop();
         }
@@ -404,7 +415,8 @@ public class TigerParser
         if(symbol == Token.EOF)
         {
             //parse wasn't far enough to really have a point to recover to
-            System.exit(0);
+            fatalError = true;
+            return;
         }
 
         Token token = tigerScanner.nextToken().x;
@@ -420,7 +432,8 @@ public class TigerParser
         {
             Output.println("(parser error): Line " + tigerScanner.getLineNum());
             Output.println("Unexpected end of file reached.");
-            System.exit(0);
+            fatalError = true;
+            return;
         }
 
         lookAhead = tigerScanner.nextToken().x;
