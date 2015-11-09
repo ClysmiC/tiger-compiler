@@ -452,7 +452,11 @@ public class TigerIrGenerator
                 //void functions don't have return statements in source code, so throw a return
                 //at the bottom of the function decl
                 if(returnType == null)
+                {
+                    code.add("\t#Void functions don't have return statements in source code.");
+                    code.add("\t#Generate return instruction to return control back to call site.");
                     code.add(instruction("return", null, null, null));
+                }
             } break;
 
 
