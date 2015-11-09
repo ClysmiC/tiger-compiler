@@ -4,7 +4,7 @@ in
 		a := 7;
 		b := 5;
 
-        if(a > b) then
+        if(a % b) then
         	a := a - 10;
 
         	if(a < b) then
