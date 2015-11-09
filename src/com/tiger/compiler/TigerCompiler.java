@@ -92,7 +92,7 @@ public class TigerCompiler
         if(!valid)
         {
             System.out.println("Usage: java TigerCompiler <input-file>.tiger [options]");
-            System.out.println("Flags:");
+            System.out.println("Options:");
             System.out.println("\t-t    : Print tokens as they are scanned.");
             System.out.println("\t-pt   : Print the parse tree after successful parse.");
             System.out.println("\t-st   : Print the symbol table after successful parse.");

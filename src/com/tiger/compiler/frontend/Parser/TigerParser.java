@@ -109,6 +109,8 @@ public class TigerParser
 
             if (focus == Token.EOF && lookAhead == Token.EOF)
             {
+                if(tigerScanner.isErrorRaised())
+                    error = true;
                 return; //done parsing :)
             }
             else if (focus instanceof Token)
