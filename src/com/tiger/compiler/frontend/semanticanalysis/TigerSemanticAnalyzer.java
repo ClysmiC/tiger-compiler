@@ -353,7 +353,8 @@ public class TigerSemanticAnalyzer
 
                 if (!isTypeCompatibleInit(type, initType))
                 {
-                    addSemanticError("Illegal initialization type.", node.getLineNumber());
+                    addSemanticError("Illegal initialization type.\nNote:Only first-order type derivations of int/float may be" +
+                            " initialized with int/float constants.", node.getLineNumber());
                     return;
                 }
 
@@ -1220,11 +1221,7 @@ public class TigerSemanticAnalyzer
                     // +, -, *, /
                     if (nodeTypeStr.contains("4") || nodeTypeStr.contains("5"))
                     {
-                        if (myType != TypeSymbol.INT && myType != TypeSymbol.FLOAT)
-                        {
-                            addSemanticError("+, -, *, / require operands of type int or float.", node.getLineNumber());
-                            return;
-                        }
+                        //no problems
                     }
                     // =, <>
                     else if (nodeTypeStr.contains("3"))

@@ -224,7 +224,7 @@ public class TigerIrGenerator
                     register = "_i" + nextTempRegister++;
                 else
                     register = "_f" + nextTempRegister++;
-                
+
                 myAttributes.put("register", register);
                 code.add(instruction("assign", register, value, null));
             } break;
