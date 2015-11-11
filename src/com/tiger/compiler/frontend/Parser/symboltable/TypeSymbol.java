@@ -1,44 +1,51 @@
 package com.tiger.compiler.frontend.parser.symboltable;
 
-import java.util.List;
-
 /**
  * Entry into the Symbol Table
  */
 public class TypeSymbol extends Symbol
 {
-    private TypeSymbol baseType;
-    private boolean isArrayOfBaseType;
+    private TypeSymbol derivedType;
+    private boolean isArrayOfDerivedType;
     private int arraySize;
 
     //types built into the language
     public final static TypeSymbol INT = new TypeSymbol("int", null);
     public final static TypeSymbol FLOAT = new TypeSymbol("float", null);
 
-    public TypeSymbol(String name, TypeSymbol baseType)
+    public TypeSymbol(String name, TypeSymbol derivedType)
     {
         super(name);
-        this.baseType = baseType;
-        this.isArrayOfBaseType = false;
+        this.derivedType = derivedType;
+        this.isArrayOfDerivedType = false;
         this.arraySize = 0;
     }
 
-    public TypeSymbol(String name, TypeSymbol baseType, int arraySize)
+    public TypeSymbol(String name, TypeSymbol derivedType, int arraySize)
     {
         super(name);
-        this.baseType = baseType;
-        this.isArrayOfBaseType = true;
+        this.derivedType = derivedType;
+        this.isArrayOfDerivedType = true;
         this.arraySize = arraySize;
     }
 
-    public TypeSymbol getBaseType()
+    public TypeSymbol derivedType()
     {
-        return baseType;
+        return derivedType;
     }
 
-    public boolean isArrayOfBaseType()
+    public boolean isArrayOfDerivedType()
     {
-        return isArrayOfBaseType;
+        return isArrayOfDerivedType;
+    }
+
+    //all types ultimately reslove to int or float
+    public TypeSymbol baseType()
+    {
+        if(this == TypeSymbol.INT || this == TypeSymbol.FLOAT)
+            return this;
+
+        return derivedType.baseType();
     }
 
     public int getArraySize()
@@ -58,7 +65,7 @@ public class TypeSymbol extends Symbol
             return str;
         }
 
-        str += "\nBase Type: " + ((isArrayOfBaseType) ? "array[" + arraySize + "] of " : "") + baseType.getName();
+        str += "\nBase Type: " + ((isArrayOfDerivedType) ? "array[" + arraySize + "] of " : "") + derivedType.getName();
         return str;
     }
 }

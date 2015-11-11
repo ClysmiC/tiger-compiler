@@ -10,7 +10,6 @@ import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.VariableSymbol;
 
-import java.lang.reflect.Type;
 import java.util.*;
 
 public class TigerSemanticAnalyzer
@@ -581,7 +580,7 @@ public class TigerSemanticAnalyzer
 
                     boolean indexedIntoArray = !(boolean) lValueTailAttributes.get("isNull");
 
-                    if (indexedIntoArray && !myType.isArrayOfBaseType())
+                    if (indexedIntoArray && !myType.isArrayOfDerivedType())
                     {
                         addSemanticError("Cannot index into variables whose type is not an array.", node.getLineNumber());
                         return;
@@ -589,7 +588,7 @@ public class TigerSemanticAnalyzer
 
                     if (indexedIntoArray)
                     {
-                        myType = myType.getBaseType();
+                        myType = myType.derivedType();
                         //eg, the type of x[5] would be int in the following code
                         /**
                          * type ArrayInt = array [100] of int;
@@ -809,7 +808,7 @@ public class TigerSemanticAnalyzer
                     Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
                     boolean indexedIntoArray = !(boolean) lValueTailAttributes.get("isNull");
 
-                    if (indexedIntoArray && !myType.isArrayOfBaseType())
+                    if (indexedIntoArray && !myType.isArrayOfDerivedType())
                     {
                         addSemanticError("Cannot index into variables whose type is not an array.", node.getLineNumber());
                         return;
@@ -817,7 +816,7 @@ public class TigerSemanticAnalyzer
 
                     if (indexedIntoArray)
                     {
-                        myType = myType.getBaseType();
+                        myType = myType.derivedType();
                         //eg, the type of x[5] would be int in the following code
                         /**
                          * type ArrayInt = array [100] of int;
@@ -1006,7 +1005,7 @@ public class TigerSemanticAnalyzer
                     {
                         TypeSymbol type = ((VariableSymbol) symbol).getType();
 
-                        if (indexedIntoArray && !type.isArrayOfBaseType())
+                        if (indexedIntoArray && !type.isArrayOfDerivedType())
                         {
                             addSemanticError("Cannot index into variables whose type is not an array.", node.getLineNumber());
                             return;
@@ -1014,7 +1013,7 @@ public class TigerSemanticAnalyzer
 
                         if (indexedIntoArray)
                         {
-                            type = type.getBaseType();
+                            type = type.derivedType();
                             //eg, the type of x[5] would be int in the following code
                             /**
                              * type ArrayInt = array [100] of int;
@@ -1314,10 +1313,10 @@ public class TigerSemanticAnalyzer
         if(isTypeCompatibleAssignment(lhsType, rhsType))
             return true;
 
-        if(lhsType.getBaseType() == TypeSymbol.INT && rhsType == TypeSymbol.INT)
+        if(lhsType.derivedType() == TypeSymbol.INT && rhsType == TypeSymbol.INT)
             return true;
 
-        if(lhsType.getBaseType() == TypeSymbol.FLOAT && (rhsType == TypeSymbol.FLOAT || rhsType == TypeSymbol.INT))
+        if(lhsType.derivedType() == TypeSymbol.FLOAT && (rhsType == TypeSymbol.FLOAT || rhsType == TypeSymbol.INT))
             return true;
 
         return false;

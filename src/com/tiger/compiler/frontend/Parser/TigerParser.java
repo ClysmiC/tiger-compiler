@@ -248,7 +248,7 @@ public class TigerParser
 
                     case PUT_TYPE_TABLE:
                     {
-                        TypeSymbol baseType = (TypeSymbol)semanticStack.pop();
+                        TypeSymbol derivedType = (TypeSymbol)semanticStack.pop();
                         boolean isArray = (boolean)semanticStack.pop();
                         int arraySize = 0;
 
@@ -270,9 +270,9 @@ public class TigerParser
                         else
                         {
                             if(isArray)
-                                globalSymbolTable.put(id, new TypeSymbol(id, baseType, arraySize));
+                                globalSymbolTable.put(id, new TypeSymbol(id, derivedType, arraySize));
                             else
-                                globalSymbolTable.put(id, new TypeSymbol(id, baseType));
+                                globalSymbolTable.put(id, new TypeSymbol(id, derivedType));
                         }
 
                     } break;

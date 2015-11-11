@@ -1,5 +1,6 @@
 package com.tiger.compiler.frontend.irgeneration;
 
+import com.sun.org.apache.xpath.internal.operations.Variable;
 import com.tiger.compiler.Output;
 import com.tiger.compiler.frontend.GrammarSymbol;
 import com.tiger.compiler.frontend.Token;
@@ -8,6 +9,7 @@ import com.tiger.compiler.frontend.parser.parsetree.ParseTreeNode;
 import com.tiger.compiler.frontend.parser.symboltable.FunctionSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
+import com.tiger.compiler.frontend.parser.symboltable.VariableSymbol;
 
 import java.util.*;
 
@@ -216,7 +218,13 @@ public class TigerIrGenerator
 
                 String value = node.getLiteralToken();
 
-                String register = "_t" + nextTempRegister++;
+                String register;
+
+                if(nodeTypeStr.equals("INTLIT"))
+                    register = "_i" + nextTempRegister++;
+                else
+                    register = "_f" + nextTempRegister++;
+                
                 myAttributes.put("register", register);
                 code.add(instruction("assign", register, value, null));
             } break;
@@ -317,7 +325,7 @@ public class TigerIrGenerator
                 Map<String, Object> mySemanticAttributes = semanticAttributes.get(node);
                 TypeSymbol myType = (TypeSymbol)mySemanticAttributes.get("type");
 
-                if(myType.isArrayOfBaseType())
+                if(myType.isArrayOfDerivedType())
                 {
                     //initialize every entry in the array
 
@@ -758,18 +766,22 @@ public class TigerIrGenerator
                     Map<String, Object> lValueTailAttributes = attributes.get(children.get(0));
                     String indexRegister = (String) lValueTailAttributes.get("register");
 
-                    String tempRegister = "_t" + nextTempRegister++;
-
                     if (indexRegister != null)
                     {
+                        //look into the symbol table to find type info
+                        //we can do this since idRegister is just the variable name
+                        //for id's
+                        VariableSymbol variable = (VariableSymbol)globalSymbolTable.get(idRegister);
+                        String tempRegister = getTempRegisterPrefix(variable.getType()) + nextTempRegister++;
+
                         code.add(instruction("array_load", tempRegister, idRegister, indexRegister));
+                        myAttributes.put("register", tempRegister);
                     }
                     else
                     {
-                        code.add(instruction("assign", tempRegister, idRegister, null));
+                        myAttributes.put("register", idRegister);
                     }
 
-                    myAttributes.put("register", tempRegister);
 
                     generateCode(children.get(1));
                     Map<String, Object> primeTermAttributes = attributes.get(children.get(1));
@@ -787,8 +799,9 @@ public class TigerIrGenerator
 
                     generateCode(children.get(0));
 
-                    String resultRegister = "_t" + nextTempRegister++;
                     FunctionSymbol function = (FunctionSymbol)globalSymbolTable.get(funcName);
+
+                    String resultRegister = getTempRegisterPrefix(function.getReturnType()) + nextTempRegister++;
 
                     int numParams = function.getParameterList().size();
 
@@ -1065,7 +1078,10 @@ public class TigerIrGenerator
                     Map<String, Object> termAttributes = attributes.get(children.get(1));
                     String rightOpRegister = (String)termAttributes.get("register");
 
-                    String resultRegister = "_t" + nextTempRegister++;
+                    Map<String, Object> mySemanticAttributes = semanticAttributes.get(node);
+                    TypeSymbol myType = (TypeSymbol)mySemanticAttributes.get("type");
+
+                    String resultRegister = getTempRegisterPrefix(myType) + nextTempRegister++;
 
                     GrammarSymbol childNodeType = children.get(0).getNodeType();
 
@@ -1193,27 +1209,30 @@ public class TigerIrGenerator
                 //<FACTOR> -> ID <LVALUE_TAIL>
                 else if(children.get(0).getNodeType() == Token.ID)
                 {
-                    //we don't want to use the registers that hold the variables for RHS stuff,
-                    //so we copy the ID value into a temp register (or the index of the id value
-                    //we are grabbing)
                     Map<String, Object> idAttributes = attributes.get(children.get(0));
                     Map<String, Object> lValueTailAttributes = attributes.get(children.get(1));
 
                     String idRegister = (String) idAttributes.get("register");
                     String indexRegister = (String) lValueTailAttributes.get("register");
 
-                    String tempRegister = "_t" + nextTempRegister++;
-
+                    //if indexing into array, we need to array_load into a temp register
+                    //otherwise we can just use the variable's register directly
                     if (indexRegister != null)
                     {
+                        String tempRegister;
+                        Map<String, Object> idSemanticAttributes = semanticAttributes.get(children.get(0));
+                        TypeSymbol idType = (TypeSymbol)idSemanticAttributes.get("type");
+
+                        tempRegister = getTempRegisterPrefix(idType) + nextTempRegister++;
+
                         code.add(instruction("array_load", tempRegister, idRegister, indexRegister));
+
+                        myAttributes.put("register", tempRegister);
                     }
                     else
                     {
-                        code.add(instruction("assign", tempRegister, idRegister, null));
+                        myAttributes.put("register", idRegister);
                     }
-
-                    myAttributes.put("register", tempRegister);
                 }
                 //<FACTOR> -> <CONST>
                 else if(children.get(0).getNodeType() == NonterminalSymbol.CONST)
@@ -1242,5 +1261,21 @@ public class TigerIrGenerator
         String str3 = (operand3 == null) ? "" : operand3;
 
         return "\t" + str0 + ", " + str1 + ", " + str2 + ", " + str3;
+    }
+
+    private String getTempRegisterPrefix(TypeSymbol type)
+    {
+        if(type == null)
+            throw new IllegalArgumentException();
+
+        TypeSymbol baseType = type.baseType();
+
+        if(baseType == TypeSymbol.INT)
+            return "_i";
+
+        if(baseType == TypeSymbol.FLOAT)
+            return "_f";
+
+        throw new IllegalArgumentException();
     }
 }
