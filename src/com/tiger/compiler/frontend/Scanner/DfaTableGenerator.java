@@ -1,9 +1,9 @@
 package com.tiger.compiler.frontend.scanner;
 
-import java.util.Scanner;
-import java.util.ArrayList;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class DfaTableGenerator
 {

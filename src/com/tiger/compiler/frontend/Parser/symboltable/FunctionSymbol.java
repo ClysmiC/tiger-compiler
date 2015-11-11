@@ -31,7 +31,7 @@ public class FunctionSymbol extends Symbol
     public String toString()
     {
         String str = "==============================";
-        str += "\nFunctionSymbol";
+        str += "\n\nFunctionSymbol";
         str += "\nName: " + getName();
         str += "\nReturns: " + ((returnType == null) ? "[void]" : returnType.getName());
         str += "\nParams: (";

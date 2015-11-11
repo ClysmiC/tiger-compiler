@@ -3,10 +3,8 @@ package com.tiger.compiler.frontend.parser;
 import com.tiger.compiler.Tuple;
 import com.tiger.compiler.frontend.GrammarSymbol;
 import com.tiger.compiler.frontend.Token;
-import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class ParserTableGenerator

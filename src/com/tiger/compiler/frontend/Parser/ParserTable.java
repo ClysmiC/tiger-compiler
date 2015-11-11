@@ -4,8 +4,6 @@ import com.tiger.compiler.Tuple;
 import com.tiger.compiler.frontend.GrammarSymbol;
 import com.tiger.compiler.frontend.Token;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 public class ParserTable

@@ -4,10 +4,9 @@ import com.tiger.compiler.Output;
 import com.tiger.compiler.Tuple;
 import com.tiger.compiler.frontend.Token;
 
-import java.lang.StringBuilder;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.io.FileInputStream;
 
 public class TigerScanner
 {

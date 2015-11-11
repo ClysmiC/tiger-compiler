@@ -1,6 +1,5 @@
 package com.tiger.compiler;
 
-import com.sun.corba.se.impl.orbutil.ObjectUtility;
 import com.tiger.compiler.frontend.irgeneration.TigerIrGenerator;
 import com.tiger.compiler.frontend.parser.TigerParser;
 import com.tiger.compiler.frontend.parser.parsetree.ParseTreeNode;
@@ -8,7 +7,10 @@ import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.scanner.TigerScanner;
 import com.tiger.compiler.frontend.semanticanalysis.TigerSemanticAnalyzer;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Andrew on 10/7/2015.

@@ -3,13 +3,13 @@ package com.tiger.compiler.frontend.parser;
 import com.tiger.compiler.Output;
 import com.tiger.compiler.Tuple;
 import com.tiger.compiler.frontend.GrammarSymbol;
+import com.tiger.compiler.frontend.Token;
 import com.tiger.compiler.frontend.parser.parsetree.ParseTreeNode;
 import com.tiger.compiler.frontend.parser.symboltable.FunctionSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.VariableSymbol;
 import com.tiger.compiler.frontend.scanner.TigerScanner;
-import com.tiger.compiler.frontend.Token;
 
 import java.util.*;
 

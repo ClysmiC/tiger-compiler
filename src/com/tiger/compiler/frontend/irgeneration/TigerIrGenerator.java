@@ -1,6 +1,5 @@
 package com.tiger.compiler.frontend.irgeneration;
 
-import com.sun.org.apache.xpath.internal.operations.Variable;
 import com.tiger.compiler.Output;
 import com.tiger.compiler.frontend.GrammarSymbol;
 import com.tiger.compiler.frontend.Token;
