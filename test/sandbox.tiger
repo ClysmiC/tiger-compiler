@@ -1,16 +1,7 @@
 let
 
-	type FirstInt = int;
-	type SecondInt = FirstInt;
-	type AnotherFirstInt = int;
-
-	var i : int := 0;
-	var first : FirstInt := 20;
-	var second : SecondInt;
-	var anotherFirst : AnotherFirstInt;
+	var x : int;
 
 in
-	
-	second := second * second;
-	/*anotherFirst := first + anotherFirst;*/
+	x := x - 99 - 100 + 99;
 end
