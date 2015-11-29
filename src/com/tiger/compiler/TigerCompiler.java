@@ -1,5 +1,6 @@
 package com.tiger.compiler;
 
+import com.tiger.compiler.backend.registerallocation.NaiveRegisterAllocator;
 import com.tiger.compiler.frontend.irgeneration.TigerIrGenerator;
 import com.tiger.compiler.frontend.parser.TigerParser;
 import com.tiger.compiler.frontend.parser.parsetree.ParseTreeNode;
@@ -152,6 +153,32 @@ public class TigerCompiler
                 //PRINT IR CODE
                 Output.irPrintln("");
                 for (String codeLine : code)
+                {
+                    //Only print comments in debug mode
+                    if (codeLine.trim().startsWith("#"))
+                    {
+                        if (codeLine.length() == 1)
+                            Output.irPrintln("");
+                        else
+                            Output.irPrintln(codeLine);
+                    }
+                    else
+                    {
+                        Output.irPrintln(codeLine);
+                    }
+                }
+
+                Output.irPrintln("\n\n==================================");
+                Output.irPrintln("---------Naive Allocation---------");
+                Output.irPrintln("==================================\n\n");
+
+                //ADD REGISTER LOAD/STORES INTO IR-CODE
+                NaiveRegisterAllocator naiveAllocator = new NaiveRegisterAllocator(code);
+                String[] newCode = naiveAllocator.insertAllocationStatements();
+
+                //PRINT IR CODE WITH ALLOCATION STATEMENTS
+                Output.irPrintln("");
+                for (String codeLine : newCode)
                 {
                     //Only print comments in debug mode
                     if (codeLine.trim().startsWith("#"))

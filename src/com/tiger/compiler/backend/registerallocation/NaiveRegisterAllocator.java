@@ -7,18 +7,18 @@ import java.util.List;
 
 public class NaiveRegisterAllocator
 {
-    private List<String> oldIr;
+    private String[] oldIr;
     private List<String> newIr;
     private int nextLineNumber;
 
-    public NaiveRegisterAllocator(List<String> irCode)
+    public NaiveRegisterAllocator(String[] irCode)
     {
         this.oldIr = irCode;
         newIr = new ArrayList<>();
         nextLineNumber = 0;
     }
 
-    public List<String> insertAllocationStatements()
+    public String[] insertAllocationStatements()
     {
         String instruction;
         while((instruction = nextCodeLine()) != null)
@@ -28,11 +28,14 @@ public class NaiveRegisterAllocator
             {
                 if(instruction.charAt(i) == ' ')
                     tabString += " ";
+                else if(instruction.charAt(i) == '\t')
+                    tabString += "\t";
                 else
                     break;
             }
 
             instruction = instruction.replaceAll(",", "");
+            instruction = instruction.trim();
             String[] pieces = instruction.split(" ");
 
             switch(pieces[0])
@@ -41,9 +44,25 @@ public class NaiveRegisterAllocator
                 {
                     //non-array
                     //TODO: handle array assignment
-                    newIr.add(tabString + "load_var, $t0, " + pieces[2] + ",");
-                    newIr.add(tabString + "assign, $t1, $t0,");
-                    newIr.add(tabString + "store_var, " + pieces[1] + ", $t1,");
+                    //note: this should only happen in variable initialization
+
+                    if (pieces.length == 3)
+                    {
+                        newIr.add(tabString + "load_var, $t0, " + pieces[2] + ",");
+                        newIr.add(tabString + "assign, $t1, $t0,");
+                        newIr.add(tabString + "store_var, " + pieces[1] + ", $t1,");
+                    }
+                    else if (pieces.length == 4)
+                    {
+                        newIr.add(tabString + "load_var, $t0, " + pieces[3] + ",");
+                        newIr.add(tabString + "assign, " + pieces[1] + ", " + pieces[2] + ", $t0");
+                        newIr.add(tabString + "#Since array-assign is a special case, we will let the assembly generator handle the stores.");
+                    }
+                    else
+                    {
+                        Output.println("Internal compiler error. Malformed 'assign' IR statement");
+                        System.exit(-1);
+                    }
                 } break;
 
                 case "add":
@@ -55,7 +74,7 @@ public class NaiveRegisterAllocator
                 {
                     newIr.add(tabString + "load_var, $t0, " + pieces[1] + ",");
                     newIr.add(tabString + "load_var, $t1, " + pieces[2] + ",");
-                    newIr.add(tabString + pieces[0] + ", t0, t1, t2");
+                    newIr.add(tabString + pieces[0] + ", $t0, $t1, $t2");
                     newIr.add(tabString + "store_var, " + pieces[3] + ", $t2,");
                 } break;
 
@@ -76,26 +95,40 @@ public class NaiveRegisterAllocator
                 {
                     newIr.add(tabString + "load_var, $t0, " + pieces[1] + ",");
                     newIr.add(tabString + "load_var, $t1, " + pieces[2] + ",");
-                    newIr.add(tabString + pieces[0] + ", t0, t1, " + pieces[3]);
+                    newIr.add(tabString + pieces[0] + ", $t0, $t1, " + pieces[3]);
                 } break;
 
                 case "array_store":
                 {
+                    newIr.add(tabString + "load_var, $t0, " + pieces[2] + ",");
+                    newIr.add(tabString + "load_var, $t1, " + pieces[3] + ",");
+                    newIr.add(tabString + "array_store, " + pieces[1] + ", $t0, $t1");
                 } break;
 
                 case "array_load":
                 {
+                    newIr.add(tabString + "load_var, $t0, " + pieces[3] + ",");
+                    newIr.add(tabString + "array_load, $t1, " + pieces[2] + ", $t0");
+                    newIr.add(tabString + "store_var, " + pieces[1] + ", $t1,");
                 } break;
 
                 default:
                 {
-                    Output.println("Internal compiler error in NaiveRegisterAllocator.");
-                    System.exit(-1);
+                    //labels
+                    if(instruction.contains(":"))
+                    {
+                        newIr.add(tabString + instruction);
+                    }
+                    else
+                    {
+                        Output.println("\n\nERROR: Internal compiler error in NaiveRegisterAllocator.");
+                        System.exit(-1);
+                    }
                 }
             }
         }
 
-        return newIr;
+        return newIr.toArray(new String[newIr.size()]);
     }
 
     private void resetCodeStream()
@@ -105,9 +138,9 @@ public class NaiveRegisterAllocator
 
     private String nextCodeLine()
     {
-        while(nextLineNumber < oldIr.size())
+        while(nextLineNumber < oldIr.length)
         {
-            String nextLine = oldIr.get(nextLineNumber);
+            String nextLine = oldIr[nextLineNumber];
             nextLineNumber++;
 
             if(nextLine.trim().isEmpty() || nextLine.trim().startsWith("#"))
