@@ -3,6 +3,8 @@ let
 
 	var myArray : ArrayInt;
 	var x : int;
+	var y : float;
+	var z : float := 3.7;
 
 in
 	x := x - 99 - 100 + 99;

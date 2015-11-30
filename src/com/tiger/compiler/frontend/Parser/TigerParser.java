@@ -11,7 +11,11 @@ import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.VariableSymbol;
 import com.tiger.compiler.frontend.scanner.TigerScanner;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
 
 public class TigerParser
 {

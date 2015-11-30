@@ -10,7 +10,11 @@ import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.VariableSymbol;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Andrew on 11/7/2015.
@@ -394,8 +398,9 @@ public class TigerIrGenerator
                 if(!children.isEmpty())
                 {
                     Map<String, Object> constAttributes = attributes.get(children.get(1));
-                    String constRegister = (String)constAttributes.get("register");
-                    myAttributes.put("register", constRegister);
+                    String constLiteralString = (String)constAttributes.get("literalString");
+
+                    myAttributes.put("register", constLiteralString);
                     myAttributes.put("initialized", true);
                 }
                 //<OPTIONAL_INIT> -> NULL
@@ -422,8 +427,8 @@ public class TigerIrGenerator
 
                 Map<String, Object> litAttributes = attributes.get(children.get(0));
                 String litRegister = (String)litAttributes.get("register");
-
                 myAttributes.put("register", litRegister);
+                myAttributes.put("literalString", children.get(0).getLiteralToken());
             } break;
 
             case "FUNC_DECLARATION":

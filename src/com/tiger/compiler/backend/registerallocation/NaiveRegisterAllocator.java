@@ -20,109 +20,130 @@ public class NaiveRegisterAllocator
 
     public String[] insertAllocationStatements()
     {
+        //all var initializations are literals,
+        //so we don't need to do any load/stores
+        boolean pastVarInitialization = false;
+
         String instruction;
         while((instruction = nextCodeLine()) != null)
         {
-            String tabString = ""; //keep new code formatted nicely :)
-            for(int i = 0; i < instruction.length(); i++)
+            if(!pastVarInitialization)
             {
-                if(instruction.charAt(i) == ' ')
-                    tabString += " ";
-                else if(instruction.charAt(i) == '\t')
-                    tabString += "\t";
-                else
-                    break;
+                instruction = instruction.replaceAll(",", "");
+                newIr.add(instruction);
+
+                if (instruction.trim().startsWith("goto")) //goto program_start
+                    pastVarInitialization = true;
             }
-
-            instruction = instruction.replaceAll(",", "");
-            instruction = instruction.trim();
-            String[] pieces = instruction.split(" ");
-
-            switch(pieces[0])
+            else
             {
-                case "assign":
+                String tabString = ""; //keep new code formatted nicely :)
+                for (int i = 0; i < instruction.length(); i++)
                 {
-                    //non-array
-                    //TODO: handle array assignment
-                    //note: this should only happen in variable initialization
+                    if (instruction.charAt(i) == ' ')
+                        tabString += " ";
+                    else if (instruction.charAt(i) == '\t')
+                        tabString += "\t";
+                    else
+                        break;
+                }
 
-                    if (pieces.length == 3)
+                instruction = instruction.replaceAll(",", "");
+                instruction = instruction.trim();
+                String[] pieces = instruction.split(" ");
+
+                switch (pieces[0])
+                {
+                    case "assign":
+                    {
+                        //non-array
+                        //TODO: handle array assignment
+                        //note: this should only happen in variable initialization
+
+                        if (pieces.length == 3)
+                        {
+                            newIr.add(tabString + "load_var $t0 " + pieces[2]);
+                            newIr.add(tabString + "assign $t1 $t0");
+                            newIr.add(tabString + "store_var " + pieces[1] + " $t1");
+                        }
+                        else if (pieces.length == 4)
+                        {
+                            newIr.add(tabString + "load_var $t0 " + pieces[3]);
+                            newIr.add(tabString + "assign " + pieces[1] + " " + pieces[2] + " $t0");
+                            newIr.add(tabString + "#Since array-assign is a special case, we will let the assembly generator handle the stores.\n");
+                        }
+                        else
+                        {
+                            Output.println("Internal compiler error. Malformed 'assign' IR statement");
+                            System.exit(-1);
+                        }
+                    }
+                    break;
+
+                    case "add":
+                    case "sub":
+                    case "mult":
+                    case "div":
+                    case "and":
+                    case "or":
+                    {
+                        newIr.add(tabString + "load_var $t0 " + pieces[1]);
+                        newIr.add(tabString + "load_var $t1, " + pieces[2]);
+                        newIr.add(tabString + pieces[0] + " $t0 $t1 $t2");
+                        newIr.add(tabString + "store_var " + pieces[3] + " $t2");
+                    }
+                    break;
+
+                    case "goto":
+                    case "call":
+                    case "callr":
+                    case "return":
+                    {
+                        newIr.add(instruction);
+                    }
+                    break;
+
+                    case "breq":
+                    case "brneq":
+                    case "brlt":
+                    case "brgt":
+                    case "brgeq":
+                    case "brleq":
+                    {
+                        newIr.add(tabString + "load_var $t0 " + pieces[1]);
+                        newIr.add(tabString + "load_var $t1 " + pieces[2]);
+                        newIr.add(tabString + pieces[0] + " $t0 $t1 " + pieces[3]);
+                    }
+                    break;
+
+                    case "array_store":
                     {
                         newIr.add(tabString + "load_var $t0 " + pieces[2]);
-                        newIr.add(tabString + "assign $t1 $t0");
+                        newIr.add(tabString + "load_var $t1 " + pieces[3]);
+                        newIr.add(tabString + "array_store " + pieces[1] + " $t0 $t1");
+                    }
+                    break;
+
+                    case "array_load":
+                    {
+                        newIr.add(tabString + "load_var $t0, " + pieces[3]);
+                        newIr.add(tabString + "array_load $t1, " + pieces[2] + " $t0");
                         newIr.add(tabString + "store_var " + pieces[1] + " $t1");
                     }
-                    else if (pieces.length == 4)
+                    break;
+
+                    default:
                     {
-                        newIr.add(tabString + "load_var $t0 " + pieces[3]);
-                        newIr.add(tabString + "assign " + pieces[1] + " " + pieces[2] + " $t0");
-                        newIr.add(tabString + "#Since array-assign is a special case, we will let the assembly generator handle the stores.\n");
-                    }
-                    else
-                    {
-                        Output.println("Internal compiler error. Malformed 'assign' IR statement");
-                        System.exit(-1);
-                    }
-                } break;
-
-                case "add":
-                case "sub":
-                case "mult":
-                case "div":
-                case "and":
-                case "or":
-                {
-                    newIr.add(tabString + "load_var $t0 " + pieces[1]);
-                    newIr.add(tabString + "load_var $t1, " + pieces[2]);
-                    newIr.add(tabString + pieces[0] + " $t0 $t1 $t2");
-                    newIr.add(tabString + "store_var " + pieces[3] + " $t2");
-                } break;
-
-                case "goto":
-                case "call":
-                case "callr":
-                case "return":
-                {
-                    newIr.add(instruction);
-                } break;
-
-                case "breq":
-                case "brneq":
-                case "brlt":
-                case "brgt":
-                case "brgeq":
-                case "brleq":
-                {
-                    newIr.add(tabString + "load_var $t0 " + pieces[1]);
-                    newIr.add(tabString + "load_var $t1 " + pieces[2]);
-                    newIr.add(tabString + pieces[0] + " $t0 $t1 " + pieces[3]);
-                } break;
-
-                case "array_store":
-                {
-                    newIr.add(tabString + "load_var $t0 " + pieces[2]);
-                    newIr.add(tabString + "load_var $t1 " + pieces[3]);
-                    newIr.add(tabString + "array_store " + pieces[1] + " $t0 $t1");
-                } break;
-
-                case "array_load":
-                {
-                    newIr.add(tabString + "load_var $t0, " + pieces[3]);
-                    newIr.add(tabString + "array_load $t1, " + pieces[2] + " $t0");
-                    newIr.add(tabString + "store_var " + pieces[1] + " $t1");
-                } break;
-
-                default:
-                {
-                    //labels
-                    if(instruction.contains(":"))
-                    {
-                        newIr.add(tabString + instruction);
-                    }
-                    else
-                    {
-                        Output.println("\n\nERROR: Internal compiler error in NaiveRegisterAllocator.");
-                        System.exit(-1);
+                        //labels
+                        if (instruction.contains(":"))
+                        {
+                            newIr.add(tabString + instruction);
+                        }
+                        else
+                        {
+                            Output.println("\n\nERROR: Internal compiler error in NaiveRegisterAllocator.");
+                            System.exit(-1);
+                        }
                     }
                 }
             }

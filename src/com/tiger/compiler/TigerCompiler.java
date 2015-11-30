@@ -1,5 +1,6 @@
 package com.tiger.compiler;
 
+import com.tiger.compiler.backend.assemblygeneration.AssemblyGenerator;
 import com.tiger.compiler.backend.registerallocation.NaiveRegisterAllocator;
 import com.tiger.compiler.frontend.irgeneration.TigerIrGenerator;
 import com.tiger.compiler.frontend.parser.TigerParser;
@@ -8,6 +9,9 @@ import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.scanner.TigerScanner;
 import com.tiger.compiler.frontend.semanticanalysis.TigerSemanticAnalyzer;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -147,12 +151,12 @@ public class TigerCompiler
 
             if (errors.length == 0)
             {
-                TigerIrGenerator ir = new TigerIrGenerator(parseTreeRoot, semanticAnalyzer.getParseTreeAttributes(), globalSymbolTable);
-                String[] code = ir.generateCode();
+                TigerIrGenerator irGenerator = new TigerIrGenerator(parseTreeRoot, semanticAnalyzer.getParseTreeAttributes(), globalSymbolTable);
+                String[] ir = irGenerator.generateCode();
 
                 //PRINT IR CODE
                 Output.irPrintln("");
-                for (String codeLine : code)
+                for (String codeLine : ir)
                 {
                     //Only print comments in debug mode
                     if (codeLine.trim().startsWith("#"))
@@ -173,12 +177,12 @@ public class TigerCompiler
                 Output.irPrintln("==================================\n\n");
 
                 //ADD REGISTER LOAD/STORES INTO IR-CODE
-                NaiveRegisterAllocator naiveAllocator = new NaiveRegisterAllocator(code);
-                String[] newCode = naiveAllocator.insertAllocationStatements();
+                NaiveRegisterAllocator naiveAllocator = new NaiveRegisterAllocator(ir);
+                String[] irWithAllocation = naiveAllocator.insertAllocationStatements();
 
                 //PRINT IR CODE WITH ALLOCATION STATEMENTS
                 Output.irPrintln("");
-                for (String codeLine : newCode)
+                for (String codeLine : irWithAllocation)
                 {
                     //Only print comments in debug mode
                     if (codeLine.trim().startsWith("#"))
@@ -193,6 +197,33 @@ public class TigerCompiler
                         Output.irPrintln(codeLine);
                     }
                 }
+
+                AssemblyGenerator asmGenerator = new AssemblyGenerator(irWithAllocation);
+                String[] assemblyCode = asmGenerator.produceAssembly();
+
+                String fileName = args[0].substring(0, args[0].length() - ".tiger".length());
+                fileName += ".s";
+
+                PrintWriter asmPw = null;
+
+                try
+                {
+                    asmPw = new PrintWriter(new BufferedWriter(new FileWriter(fileName)));
+                }
+                catch (Exception e)
+                {
+                    Output.println("Error opening file writer. Unable to produce assembly file.");
+                    System.exit(-1);
+                }
+
+                for(String codeLine: assemblyCode)
+                {
+                    asmPw.println(codeLine);
+                }
+
+                asmPw.close();
+
+                Output.println("\n\nAssembly output to " + fileName);
             }
             else
             {
