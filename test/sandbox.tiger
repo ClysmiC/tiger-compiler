@@ -1,5 +1,7 @@
 let
+	type ArrayInt = array[100] of int;
 
+	var myArray : ArrayInt;
 	var x : int;
 
 in

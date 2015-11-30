@@ -48,15 +48,15 @@ public class NaiveRegisterAllocator
 
                     if (pieces.length == 3)
                     {
-                        newIr.add(tabString + "load_var, $t0, " + pieces[2] + ",");
-                        newIr.add(tabString + "assign, $t1, $t0,");
-                        newIr.add(tabString + "store_var, " + pieces[1] + ", $t1,");
+                        newIr.add(tabString + "load_var $t0 " + pieces[2]);
+                        newIr.add(tabString + "assign $t1 $t0");
+                        newIr.add(tabString + "store_var " + pieces[1] + " $t1");
                     }
                     else if (pieces.length == 4)
                     {
-                        newIr.add(tabString + "load_var, $t0, " + pieces[3] + ",");
-                        newIr.add(tabString + "assign, " + pieces[1] + ", " + pieces[2] + ", $t0");
-                        newIr.add(tabString + "#Since array-assign is a special case, we will let the assembly generator handle the stores.");
+                        newIr.add(tabString + "load_var $t0 " + pieces[3]);
+                        newIr.add(tabString + "assign " + pieces[1] + " " + pieces[2] + " $t0");
+                        newIr.add(tabString + "#Since array-assign is a special case, we will let the assembly generator handle the stores.\n");
                     }
                     else
                     {
@@ -72,10 +72,10 @@ public class NaiveRegisterAllocator
                 case "and":
                 case "or":
                 {
-                    newIr.add(tabString + "load_var, $t0, " + pieces[1] + ",");
-                    newIr.add(tabString + "load_var, $t1, " + pieces[2] + ",");
-                    newIr.add(tabString + pieces[0] + ", $t0, $t1, $t2");
-                    newIr.add(tabString + "store_var, " + pieces[3] + ", $t2,");
+                    newIr.add(tabString + "load_var $t0 " + pieces[1]);
+                    newIr.add(tabString + "load_var $t1, " + pieces[2]);
+                    newIr.add(tabString + pieces[0] + " $t0 $t1 $t2");
+                    newIr.add(tabString + "store_var " + pieces[3] + " $t2");
                 } break;
 
                 case "goto":
@@ -93,23 +93,23 @@ public class NaiveRegisterAllocator
                 case "brgeq":
                 case "brleq":
                 {
-                    newIr.add(tabString + "load_var, $t0, " + pieces[1] + ",");
-                    newIr.add(tabString + "load_var, $t1, " + pieces[2] + ",");
-                    newIr.add(tabString + pieces[0] + ", $t0, $t1, " + pieces[3]);
+                    newIr.add(tabString + "load_var $t0 " + pieces[1]);
+                    newIr.add(tabString + "load_var $t1 " + pieces[2]);
+                    newIr.add(tabString + pieces[0] + " $t0 $t1 " + pieces[3]);
                 } break;
 
                 case "array_store":
                 {
-                    newIr.add(tabString + "load_var, $t0, " + pieces[2] + ",");
-                    newIr.add(tabString + "load_var, $t1, " + pieces[3] + ",");
-                    newIr.add(tabString + "array_store, " + pieces[1] + ", $t0, $t1");
+                    newIr.add(tabString + "load_var $t0 " + pieces[2]);
+                    newIr.add(tabString + "load_var $t1 " + pieces[3]);
+                    newIr.add(tabString + "array_store " + pieces[1] + " $t0 $t1");
                 } break;
 
                 case "array_load":
                 {
-                    newIr.add(tabString + "load_var, $t0, " + pieces[3] + ",");
-                    newIr.add(tabString + "array_load, $t1, " + pieces[2] + ", $t0");
-                    newIr.add(tabString + "store_var, " + pieces[1] + ", $t1,");
+                    newIr.add(tabString + "load_var $t0, " + pieces[3]);
+                    newIr.add(tabString + "array_load $t1, " + pieces[2] + " $t0");
+                    newIr.add(tabString + "store_var " + pieces[1] + " $t1");
                 } break;
 
                 default:
