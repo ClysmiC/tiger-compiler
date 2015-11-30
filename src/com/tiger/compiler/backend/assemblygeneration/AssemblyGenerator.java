@@ -17,99 +17,101 @@ public class AssemblyGenerator
     public AssemblyGenerator(String[] ir)
     {
         this.ir = ir;
-        allVariables = new ArrayList<>();
-        findAllVariables();
         asm = new ArrayList<>();
+
+        allVariables = new ArrayList<>();
     }
 
     public String[] produceAssembly()
     {
         asm.add(".data");
+        int varDeclEndLine = 0;
 
         asm.add("\n#User-created variables");
+        for (int i = 0; i < ir.length; i++)
         {
-            for (String line : ir)
+            String line = ir[i];
+            line = line.trim();
+
+            if(line.isEmpty() || line.startsWith("#"))
+                continue;
+
+            String[] pieces = line.split(" ");
+
+            if (pieces[0].equals("goto"))
             {
-                line = line.trim();
+                varDeclEndLine = i;
+                break; //var initialization complete
+            }
 
-                if(line.isEmpty() || line.startsWith("#"))
-                    continue;
+            if(pieces[0].equals("assign"))
+            {
+                allVariables.add(pieces[1]);
 
-                String[] pieces = line.split(" ");
-
-                if (pieces[0].equals("goto"))
+                if(pieces.length == 3)
                 {
-                    break; //var initialization complete
+                    //ignore temporary registers in the variable initialization segment.
+                    //they are a side-product of the process through which the ir-generator
+                    //emits code, but they are redundant and useless in this segment for the assembly
+                    if(pieces[1].startsWith("_"))
+                    {
+                        continue;
+                    }
+
+                    asm.add(pieces[1] + ": .word " + pieces[2]);
                 }
-
-                if(pieces[0].equals("assign"))
+                else if (pieces.length == 4)
                 {
-                    if(pieces.length == 3)
-                    {
-                        //ignore temporary registers in the variable initialization segment.
-                        //they are a side-product of the process through which the ir-generator
-                        //emits code, but they are redundant and useless in this segment for the assembly
-                        if(pieces[1].startsWith("_"))
-                            continue;
-
-                        asm.add(pieces[1] + ": .word " + pieces[2]);
-                    }
-                    else if (pieces.length == 4)
-                    {
-                        asm.add(pieces[1] + ": .word " + pieces[3] + ":" + pieces[2]);
-                    }
-                    else
-                    {
-                        Output.println("Internal compiler error. Malformed 'assign' IR statement");
-                        System.exit(-1);
-                    }
+                    asm.add(pieces[1] + ": .word " + pieces[3] + ":" + pieces[2]);
                 }
                 else
                 {
-                    System.out.println("Internal compiler error. Non-assign IR statements before program body.");
+                    Output.println("Internal compiler error. Malformed 'assign' IR statement");
                     System.exit(-1);
                 }
             }
+            else
+            {
+                System.out.println("Internal compiler error. Non-assign IR statements before program body.");
+                System.exit(-1);
+            }
         }
 
-        asm.add("\n#Compiler-created variables.");
 
+        asm.add("\n#Compiler-created variables.");
+        for (int i = varDeclEndLine; i < ir.length; i++)
+        {
+            String line = ir[i].trim();
+            if (line.isEmpty() || line.startsWith("#") || line.contains(":"))
+                continue;
+
+            String[] pieces = line.split(" ");
+
+            if(pieces[0].equals("store_var"))
+            {
+                if(undiscoveredVariable(pieces[1]))
+                    asm.add(pieces[1] + ": .word 0");
+            }
+            else if(pieces[0].equals("load_var"))
+            {
+                if(undiscoveredVariable(pieces[2]))
+                    asm.add(pieces[2] + ": .word 0");
+            }
+            else if(pieces[0].equals("assign") && pieces.length == 4)
+            {
+                System.out.println("Internal compiler error. Assigning value to entire array should only occur in var_declaration segment.");
+                System.exit(-1);
+            }
+        }
+
+
+        
+        asm.add("\n\n.text");
 
         return asm.toArray(new String[asm.size()]);
     }
 
-    private void findAllVariables()
-    {
-        for (String codeLine : ir)
-        {
-            String str = codeLine.trim();
-            if (str.isEmpty() || str.startsWith("#") || str.contains(":"))
-                continue;
-
-            String[] pieces = str.split(" ");
-
-            if(pieces[0].equals("store_var"))
-            {
-                addToVariablesList(pieces[1]);
-            }
-            else if(pieces[0].equals("load_var"))
-            {
-                if(pieces.length < 3)
-                {
-                    int debug = 93023;
-                }
-
-                addToVariablesList(pieces[2]);
-            }
-            else if(pieces[0].equals("assign") && pieces.length == 4)
-            {
-                //assigning to entire array (this always gets done, explicitly, or implicitly (to 0))
-                addToVariablesList(pieces[1]);
-            }
-        }
-    }
-
-    public boolean addToVariablesList(String str)
+    public boolean undiscoveredVariable(String str)
     {
         if(str.matches("-?\\d+(\\.\\d+)?"))
             return false;
