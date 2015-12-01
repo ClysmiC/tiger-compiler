@@ -117,9 +117,21 @@ public class NaiveRegisterAllocator
                     } break;
 
                     case "goto":
-                    case "return":
                     {
                         newIr.add(tabString + instruction);
+                    } break;
+
+                    case "return":
+                    {
+                        if(pieces.length == 2)
+                        {
+                            newIr.add(tabString + "load_var $v0 " + pieces[1]);
+                            newIr.add(tabString + "return $v0");
+                        }
+                        else
+                        {
+                            newIr.add(tabString + "return");
+                        }
                     } break;
 
 
@@ -140,6 +152,8 @@ public class NaiveRegisterAllocator
                         }
 
                         newIr.add(tabString + instruction);
+
+//                        if(pieces[0].equals("callr"))
                     } break;
 
                     case "breq":

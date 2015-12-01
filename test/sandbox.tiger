@@ -9,6 +9,11 @@ let
 	var loopCounter : int;
 
 	var flute : float := 3.5;
+
+	function doubleMe (input : int) : int
+	begin
+		return input + input;
+	end;
 in
 	for loopCounter := 1 + 3 to 6 + 7
 	do
@@ -18,6 +23,8 @@ in
 			x := x + z;
 		endif;
 	enddo;
+
+	x := doubleMe(x);
 
 	printi(x);
 end

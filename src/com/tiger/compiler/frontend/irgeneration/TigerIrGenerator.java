@@ -1024,7 +1024,7 @@ public class TigerIrGenerator
                     argumentRegister = "_" + functionBeingDeclared + "_" + paramName + "_float";
                 }
 
-                String callSiteRegister = "_" + functionBeingDeclared + "_arg" + argumentNumber++;
+                String callSiteRegister = "__" + functionBeingDeclared + "_arg" + argumentNumber++;
 
                 code.add(instruction("assign", argumentRegister, callSiteRegister, null));
             } break;

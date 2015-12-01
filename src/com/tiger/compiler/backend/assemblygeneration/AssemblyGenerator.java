@@ -23,7 +23,7 @@ public class AssemblyGenerator
     public String[] produceAssembly()
     {
         asm.add(".data");
-        asm.add("\n.globl main");
+//        asm.add("\n.globl main");
 
         int varDeclEndLine = 0;
 
@@ -225,11 +225,14 @@ public class AssemblyGenerator
 
                 case "callr":
                 {
-
+                    asm.add("jal " + pieces[2]);
+                    asm.add("sw $v0, " + pieces[1]); //NOTE: this works for naive, but
+                                                    // perhaps it should be putting $v0 directly into a register
                 } break;
 
                 case "return":
                 {
+                    asm.add("jr $ra");
                 } break;
 
                 case "breq":
