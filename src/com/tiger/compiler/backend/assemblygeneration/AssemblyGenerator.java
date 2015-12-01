@@ -319,18 +319,38 @@ public class AssemblyGenerator
 
                 case "array_store":
                 {
-                    int offset = Integer.parseInt(pieces[2]);
-                    offset *= 4;
+                    if(isNumeric(pieces[2]))
+                    {
+                        int offset = Integer.parseInt(pieces[2]);
+                        offset *= 4;
 
-                    asm.add("sw " + pieces[3] + ", " + pieces[1] + "(" + offset + ")");
+                        asm.add("sw " + pieces[3] + ", " + pieces[1] + "(" + offset + ")");
+                    }
+                    else
+                    {
+                        asm.add("li $at 4");
+                        asm.add("mul $at " + pieces[2]);
+                        asm.add("mflo $at");
+                        asm.add("sw " + pieces[3] + ", " + pieces[1] + "($at)");
+                    }
                 } break;
 
                 case "array_load":
                 {
-                    int offset = Integer.parseInt(pieces[3]);
-                    offset *= 4;
+                    if(isNumeric(pieces[3]))
+                    {
+                        int offset = Integer.parseInt(pieces[3]);
+                        offset *= 4;
 
-                    asm.add("lw " + pieces[1] + ", " + pieces[2] + "(" + offset + ")");
+                        asm.add("lw " + pieces[1] + ", " + pieces[2] + "(" + offset + ")");
+                    }
+                    else
+                    {
+                        asm.add("li $at 4");
+                        asm.add("mul $at " + pieces[3]);
+                        asm.add("mflo $at");
+                        asm.add("lw " + pieces[1] + ", " + pieces[2] + "($at)");
+                    }
 
                     boolean floatInRegister = isFloat(pieces[2]);
                     int registerNumber = registerNumber(pieces[1]);
