@@ -1,4 +1,4 @@
-package com.tiger.compiler.backend.registerallocation;
+package com.tiger.compiler.backend.registerallocation.cfg;
 
 public class CfgBuilder
 {
