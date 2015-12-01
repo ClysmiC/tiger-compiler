@@ -66,6 +66,10 @@ public class TigerParser
         printiArgs.add(TypeSymbol.INT);
         FunctionSymbol printi = new FunctionSymbol("printi", null, printiArgs);
 
+        List<TypeSymbol> printfArgs = new ArrayList<>();
+        printfArgs.add(TypeSymbol.FLOAT);
+        FunctionSymbol printf = new FunctionSymbol("printf", null, printfArgs);
+
         FunctionSymbol flush = new FunctionSymbol("flush", null, new ArrayList<TypeSymbol>());
 
         List<TypeSymbol> notArgs = new ArrayList<>();
@@ -77,6 +81,7 @@ public class TigerParser
         FunctionSymbol exit = new FunctionSymbol("exit", null, exitArgs);
 
         globalSymbolTable.put("printi", printi);
+        globalSymbolTable.put("printf", printf);
         globalSymbolTable.put("flush", flush);
         globalSymbolTable.put("not", not);
         globalSymbolTable.put("exit", exit);

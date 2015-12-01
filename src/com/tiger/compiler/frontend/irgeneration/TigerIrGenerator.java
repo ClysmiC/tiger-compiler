@@ -294,7 +294,7 @@ public class TigerIrGenerator
                 code.add("#");
                 code.add("#");
                 code.add("##########Body of the actual program begins here##########");
-                code.add("program_start:");
+                code.add("_program_start:");
 
                 generateCode(children.get(3)); //<STAT_SEQ>
                 generateCode(children.get(4)); //END

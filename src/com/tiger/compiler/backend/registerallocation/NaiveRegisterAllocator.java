@@ -71,8 +71,7 @@ public class NaiveRegisterAllocator
                             Output.println("Internal compiler error. Malformed 'assign' IR statement or array assign outside in non-initialization.");
                             System.exit(-1);
                         }
-                    }
-                    break;
+                    } break;
 
                     case "add":
                     case "sub":
@@ -115,17 +114,33 @@ public class NaiveRegisterAllocator
                             newIr.add(tabString + pieces[0] + " $t0 $t1 $t2");
                             newIr.add(tabString + "store_var " + pieces[3] + " $t2");
                         }
-                    }
-                    break;
+                    } break;
 
                     case "goto":
-                    case "call":
-                    case "callr":
                     case "return":
                     {
-                        newIr.add(instruction);
-                    }
-                    break;
+                        newIr.add(tabString + instruction);
+                    } break;
+
+
+                    case "call":
+                    case "callr":
+                    {
+                        int offset = pieces[0].equals("call") ? 0 : 1;
+
+                        int arg = 0;
+                        for(int i = 2 + offset; i < pieces.length; i++)
+                        {
+                            newIr.add(tabString + "load_var $a" + arg + " __" + pieces[1 + offset] + "_arg" + arg);
+
+                            if(arg == 3)
+                                break;
+
+                            arg++;
+                        }
+
+                        newIr.add(tabString + instruction);
+                    } break;
 
                     case "breq":
                     case "brneq":
@@ -137,24 +152,21 @@ public class NaiveRegisterAllocator
                         newIr.add(tabString + "load_var $t0 " + pieces[1]);
                         newIr.add(tabString + "load_var $t1 " + pieces[2]);
                         newIr.add(tabString + pieces[0] + " $t0 $t1 " + pieces[3]);
-                    }
-                    break;
+                    } break;
 
                     case "array_store":
                     {
                         newIr.add(tabString + "load_var $t0 " + pieces[2]);
                         newIr.add(tabString + "load_var $t1 " + pieces[3]);
                         newIr.add(tabString + "array_store " + pieces[1] + " $t0 $t1");
-                    }
-                    break;
+                    } break;
 
                     case "array_load":
                     {
                         newIr.add(tabString + "load_var $t0, " + pieces[3]);
                         newIr.add(tabString + "array_load $t1 " + pieces[2] + " $t0");
                         newIr.add(tabString + "store_var " + pieces[1] + " $t1");
-                    }
-                    break;
+                    } break;
 
                     default:
                     {

@@ -6,6 +6,9 @@ let
 	var y : int := 7;
 	var z : int := 20;
 
+	var flute : float := 3.5;
 in
 	x := y + z * z;
+	printi(x);
+	printf(flute);
 end

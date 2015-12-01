@@ -10,6 +10,7 @@ import com.tiger.compiler.frontend.parser.symboltable.Symbol;
 import com.tiger.compiler.frontend.parser.symboltable.TypeSymbol;
 import com.tiger.compiler.frontend.parser.symboltable.VariableSymbol;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -477,6 +478,11 @@ public class TigerSemanticAnalyzer
                             addSemanticError("Cannot call \"" + funcId + "\" as if it were a function.", node.getLineNumber());
                             return;
                         }
+
+                        FunctionSymbol function = (FunctionSymbol)symbol;
+                        List<TypeSymbol> typeList = (List<TypeSymbol>)statAssignOrFuncAttributes.get("typeList");
+
+                        verifyFunctionParameters(function, typeList, node.getLineNumber());
                     }
                 }
                 //<STAT> -> RETURN <EXPR> SEMI
@@ -879,8 +885,8 @@ public class TigerSemanticAnalyzer
 
                 Map<String, Object> exprListAttributes = attributes.get(children.get(1));
 
-                myAttributes.put("typeList", exprListAttributes.get("typeList"));
-
+                List<TypeSymbol> typeList = (List<TypeSymbol>)exprListAttributes.get("typeList");
+                myAttributes.put("typeList", typeList);
             }
             break;
 
