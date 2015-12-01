@@ -284,7 +284,6 @@ public class TigerSemanticAnalyzer
                 {
                     analyze(child);
                 }
-
             }
             break;
 
@@ -342,12 +341,14 @@ public class TigerSemanticAnalyzer
 
                 //Analyze children node
                 List<ParseTreeNode> children = node.getChildren();
+
                 for (ParseTreeNode child : children)
                 {
                     analyze(child);
                 }
 
                 //<VAR_DECLARATION> -> VAR <ID_LIST> COLON <TYPE_SYMBOL> <OPTIONAL_INIT>  SEMI
+
                 Map<String, Object> typeSymbolAttributes = attributes.get(children.get(3));
                 TypeSymbol type = (TypeSymbol) typeSymbolAttributes.get("type");
 

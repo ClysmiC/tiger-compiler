@@ -2,10 +2,10 @@ let
 	type ArrayInt = array[100] of int;
 
 	var myArray : ArrayInt;
-	var x : int;
-	var y : float;
-	var z : float := 3.7;
+	var x : int := 0;
+	var y : int := 7;
+	var z : int := 20;
 
 in
-	x := x - 99 - 100 + 99;
+	x := y + z * z;
 end

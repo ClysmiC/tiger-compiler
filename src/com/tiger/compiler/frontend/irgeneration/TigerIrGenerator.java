@@ -177,7 +177,7 @@ public class TigerIrGenerator
 
             case "ID":
             {
-                //IDs are stored in registers named _[id-name]
+                //IDs are stored in registers named _[id-name]_type
                 //If the ID is a parameter to a function, we don't want to overwrite any global variables with the
                 //same name, so we store it in register named __[function-name]_[id-name]
                 //two underscores are required because there could be a global variable named [function-name]_[id-name]
@@ -189,12 +189,20 @@ public class TigerIrGenerator
                 String functionName = (String)mySemanticAttributes.get("functionName");
 
                 myAttributes.put("functionName", functionName);
+                TypeSymbol myType = (TypeSymbol)mySemanticAttributes.get("type");
 
                 String idName = node.getLiteralToken();
 
                 if(functionName == null) //not in a function
                 {
-                    myAttributes.put("register", idName);
+                    if(myType != null && myType.baseType() == TypeSymbol.INT)
+                    {
+                        myAttributes.put("register", idName + "_int");
+                    }
+                    else
+                    {
+                        myAttributes.put("register", idName + "_float");
+                    }
                 }
                 else
                 {
@@ -204,11 +212,25 @@ public class TigerIrGenerator
 
                     if(param == null) //it is a global variable, not a param
                     {
-                        myAttributes.put("register", idName);
+                        if(myType != null && myType.baseType() == TypeSymbol.INT)
+                        {
+                            myAttributes.put("register", idName + "_int");
+                        }
+                        else
+                        {
+                            myAttributes.put("register", idName + "_float");
+                        }
                     }
                     else //it is a parameter
                     {
-                        myAttributes.put("register", "_" + functionName + "_" + idName);
+                        if(myType != null && myType.baseType() == TypeSymbol.INT)
+                        {
+                            myAttributes.put("register", "_" + functionName + "_" + idName + "_int");
+                        }
+                        else
+                        {
+                            myAttributes.put("register", "_" + functionName + "_" + idName + "_float");
+                        }
                     }
                 }
             } break;
@@ -986,10 +1008,22 @@ public class TigerIrGenerator
                 Map<String, Object> parentAttributes = attributes.get(node.getParent());
                 String functionBeingDeclared = (String)parentAttributes.get("functionBeingDeclared");
 
+                FunctionSymbol functionSymbol = (FunctionSymbol)globalSymbolTable.get(functionBeingDeclared);
+                TypeSymbol myType = functionSymbol.getParameterList().get(argumentNumber);
+
                 List<ParseTreeNode> children = node.getChildren();
                 String paramName = children.get(0).getLiteralToken();
 
-                String argumentRegister = "_" + functionBeingDeclared + "_" + paramName;
+                String argumentRegister;
+                if(myType.baseType() == TypeSymbol.INT)
+                {
+                    argumentRegister = "_" + functionBeingDeclared + "_" + paramName + "_int";
+                }
+                else
+                {
+                    argumentRegister = "_" + functionBeingDeclared + "_" + paramName + "_float";
+                }
+
                 String callSiteRegister = "_" + functionBeingDeclared + "_arg" + argumentNumber++;
 
                 code.add(instruction("assign", argumentRegister, callSiteRegister, null));
