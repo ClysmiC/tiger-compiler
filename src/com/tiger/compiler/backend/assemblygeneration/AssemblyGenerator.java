@@ -23,6 +23,8 @@ public class AssemblyGenerator
     public String[] produceAssembly()
     {
         asm.add(".data");
+        asm.add("\n.globl main");
+
         int varDeclEndLine = 0;
 
         asm.add("\n#User-created variables");
@@ -157,10 +159,11 @@ public class AssemblyGenerator
 
             if(line.contains(":"))
             {
-                asm.add("\n" + line);
 
                 if(line.equals("_program_start:"))
-                    asm.add("main:");
+                    asm.add("\nmain:");
+                else
+                    asm.add("\n" + line);
 
                 continue;
             }
@@ -277,7 +280,10 @@ public class AssemblyGenerator
 
                 case "load_var":
                 {
-                    asm.add("lw " + pieces[1] + ", " + pieces[2]);
+                    if(isNumeric(pieces[2]))
+                        asm.add("li " + pieces[1] + ", " + pieces[2]);
+                    else
+                        asm.add("lw " + pieces[1] + ", " + pieces[2]);
                 } break;
 
                 case "store_var":
@@ -301,12 +307,17 @@ public class AssemblyGenerator
 
     public boolean undiscoveredVariable(String str)
     {
-        if(str.matches("-?\\d+(\\.\\d+)?"))
+        if(isNumeric(str))
             return false;
         else if(allVariables.contains(str))
             return false;
 
         allVariables.add(str);
         return true;
+    }
+
+    public boolean isNumeric(String str)
+    {
+        return str.matches("-?\\d+(\\.\\d+)?");
     }
 }
