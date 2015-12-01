@@ -1,7 +1,5 @@
 .data
 
-.globl main
-
 #User-created variables
 myArray_int: .word 0:100
 x_int: .word 0
@@ -25,6 +23,8 @@ _i12: .word 0
 _i13: .word 0
 _i14: .word 0
 _i15: .word 0
+_i16: .word 0
+_f17: .word 0
 __printi_arg0: .word 0
 __printf_arg0: .word 0
 
@@ -127,11 +127,30 @@ sw $v0, _i15
 lw $t0, _i15
 move $t1, $t0
 sw $t1, x_int
+li $t0, 2
+move $t1, $t0
+sw $t1, _i16
+lw $t0, flute_float
+lw $t1, _i16
+mtc1 $t0, $f0
+mtc1 $t1, $f1
+cvt.s.w $f1, $f1
+mul.s $f2, $f0, $f1
+mfc1 $t2, $f2
+sw $t2, _f17
+lw $t0, _f17
+move $t1, $t0
+sw $t1, flute_float
 lw $t0, x_int
 move $t1, $t0
 sw $t1, __printi_arg0
 lw $a0, __printi_arg0
 jal printi
+lw $t0, flute_float
+move $t1, $t0
+sw $t1, __printf_arg0
+lw $a0, __printf_arg0
+jal printf
 
 li $v0, 10
 syscall

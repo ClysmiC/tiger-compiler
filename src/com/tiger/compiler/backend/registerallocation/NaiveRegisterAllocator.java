@@ -3,21 +3,15 @@ package com.tiger.compiler.backend.registerallocation;
 import com.tiger.compiler.Output;
 
 import java.util.ArrayList;
-import java.util.List;
 
-public class NaiveRegisterAllocator
+public class NaiveRegisterAllocator extends RegisterAllocator
 {
-    private String[] oldIr;
-    private List<String> newIr;
-    private int nextLineNumber;
-
     public NaiveRegisterAllocator(String[] irCode)
     {
-        this.oldIr = irCode;
-        newIr = new ArrayList<>();
-        nextLineNumber = 0;
+        super(irCode);
     }
 
+    @Override
     public String[] insertAllocationStatements()
     {
         //all var initializations are literals,
@@ -80,40 +74,10 @@ public class NaiveRegisterAllocator
                     case "and":
                     case "or":
                     {
-                        //only the operations have to know/care whether using ints or floats
-                        boolean leftFloat = false;
-                        boolean rightFloat = false;
-
-                        if(isFloat(pieces[1]))
-                        {
-                            newIr.add(tabString + "load_var $f0 " + pieces[1]);
-                            leftFloat = true;
-                        }
-                        else
-                        {
-                            newIr.add(tabString + "load_var $t0 " + pieces[1]);
-                        }
-
-                        if(isFloat(pieces[2]))
-                        {
-                            newIr.add(tabString + "load_var $f1 " + pieces[2]);
-                            rightFloat = true;
-                        }
-                        else
-                        {
-                            newIr.add(tabString + "load_var $t1 " + pieces[2]);
-                        }
-
-                        if(leftFloat || rightFloat)
-                        {
-                            newIr.add(tabString + pieces[0] + ((leftFloat) ? " $t0" : " $f0") + ((rightFloat) ? " $t1" : " $f1") + " $f2");
-                            newIr.add(tabString + "store_var " + pieces[3] + " $f2");
-                        }
-                        else
-                        {
-                            newIr.add(tabString + pieces[0] + " $t0 $t1 $t2");
-                            newIr.add(tabString + "store_var " + pieces[3] + " $t2");
-                        }
+                        newIr.add(tabString + "load_var $t0 " + pieces[1]);
+                        newIr.add(tabString + "load_var $t1 " + pieces[2]);
+                        newIr.add(tabString + pieces[0] + " $t0 $t1 $t2");
+                        newIr.add(tabString + "store_var " + pieces[3] + " $t2");
                     } break;
 
                     case "goto":
@@ -200,35 +164,5 @@ public class NaiveRegisterAllocator
         }
 
         return newIr.toArray(new String[newIr.size()]);
-    }
-
-    private void resetCodeStream()
-    {
-        nextLineNumber = 0;
-    }
-
-    private String nextCodeLine()
-    {
-        while(nextLineNumber < oldIr.length)
-        {
-            String nextLine = oldIr[nextLineNumber];
-            nextLineNumber++;
-
-            if(nextLine.trim().isEmpty() || nextLine.trim().startsWith("#"))
-            {
-                newIr.add(nextLine);
-                continue;
-            }
-
-            return nextLine;
-        }
-
-        //no lines left
-        return null;
-    }
-
-    private boolean isFloat(String str)
-    {
-        return str.contains(".") || str.startsWith("_f") || str.endsWith("_float");
     }
 }

@@ -25,6 +25,8 @@ in
 	enddo;
 
 	x := doubleMe(x);
+	flute := flute * 2;
 
 	printi(x);
+	printf(flute);
 end
