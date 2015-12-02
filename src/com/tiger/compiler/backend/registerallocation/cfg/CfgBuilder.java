@@ -7,12 +7,14 @@ public class CfgBuilder
 {
     private String[] irCode;
     private List<CfgNode> cfg;
+    private List<CfgNode> entryPoints; //each function has its own cfg, these are the entry points to each one
 
     public CfgBuilder(String[] irCode)
     {
         this.irCode = irCode;
 
         cfg = new ArrayList<>();
+        entryPoints = new ArrayList<>();
     }
 
     public List<CfgNode> constructCfg()
@@ -21,6 +23,9 @@ public class CfgBuilder
         {
             int startLine = 0;
             int endLine;
+
+            boolean declaringFunctions = true;
+            boolean nextBlockIsEntryPoint = false;
 
             for (int i = 0; i < irCode.length; i++)
             {
@@ -32,15 +37,37 @@ public class CfgBuilder
                 if (line.contains(":"))
                 {
                     endLine = i - 1;
-                    cfg.add(new CfgNode(startLine, endLine));
+                    CfgNode node = new CfgNode(startLine, endLine);
+                    cfg.add(node);
+
+                    if(nextBlockIsEntryPoint)
+                        entryPoints.add(node);
 
                     startLine = i;
+
+                    if(declaringFunctions)
+                    {
+                        nextBlockIsEntryPoint = true;
+
+                        if(line.equals("_program_start:"))
+                            declaringFunctions = false;
+                    }
+                    else
+                    {
+                        nextBlockIsEntryPoint = false;
+                    }
                 }
                 else if (line.startsWith("br") || line.startsWith("return") || line.startsWith("goto") ||
                         line.startsWith("call") || line.startsWith("callr"))
                 {
                     endLine = i;
-                    cfg.add(new CfgNode(startLine, endLine));
+                    CfgNode node = new CfgNode(startLine, endLine);
+                    cfg.add(node);
+
+                    if(nextBlockIsEntryPoint)
+                        entryPoints.add(node);
+
+                    nextBlockIsEntryPoint = false;
 
                     startLine = i + 1;
                 }
@@ -48,7 +75,13 @@ public class CfgBuilder
 
             endLine = irCode.length - 1;
             if (endLine > startLine)
-                cfg.add(new CfgNode(startLine, endLine));
+            {
+                CfgNode node = new CfgNode(startLine, endLine);
+                cfg.add(node);
+
+                if(nextBlockIsEntryPoint)
+                    entryPoints.add(node);
+            }
         }
 
         //construct edges
@@ -81,32 +114,7 @@ public class CfgBuilder
                     }
                 }
 
-                if(endLine.startsWith("call") || endLine.startsWith("callr"))
-                {
-                    String targetLabel = "";
-                    if (endLine.startsWith("callr"))
-                    {
-                        targetLabel = endLine.replaceAll(",", "").split(" ")[2];
-                    }
-                    else if (endLine.startsWith("call"))
-                    {
-                        targetLabel = endLine.replaceAll(",", "").split(" ")[1];
-                    }
-
-                    //edge from me to function i'm calling
-                    for (CfgNode potentialTarget : cfg)
-                    {
-                        String startLine = irCode[potentialTarget.getStartLine()];
-                        if (startLine.trim().equals(targetLabel + ":"))
-                        {
-                            node.addEdge(potentialTarget);
-                            break;
-
-                            //add edge from function 
-                        }
-                    }
-                }
-                else if(!endLine.startsWith("goto") && !endLine.startsWith("return"))
+                if(!endLine.startsWith("goto") && !endLine.startsWith("return"))
                 {
                     for(CfgNode potentialTarget : cfg)
                     {
@@ -120,6 +128,13 @@ public class CfgBuilder
             }
         }
 
+        cfg.remove(0); //this is variable initialization, which doesn't use registers, and can only clutter
+
         return cfg;
+    }
+
+    public List<CfgNode> getEntryPoints()
+    {
+        return entryPoints;
     }
 }

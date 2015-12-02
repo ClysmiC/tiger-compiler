@@ -27,7 +27,6 @@ public class AssemblyGenerator
     public String[] produceAssembly()
     {
         asm.add(".data");
-//        asm.add("\n.globl main");
 
         int varDeclEndLine = 0;
 
