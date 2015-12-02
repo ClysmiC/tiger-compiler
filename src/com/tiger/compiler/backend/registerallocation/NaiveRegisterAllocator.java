@@ -17,12 +17,10 @@ public class NaiveRegisterAllocator extends RegisterAllocator
         //all var initializations are literals,
         //so we don't need to do any load/stores
         boolean pastVarInitialization = false;
-        boolean pastFuncInitialization = false;
 
         String instruction;
         while((instruction = nextCodeLine()) != null)
         {
-            String regPrefix = (pastFuncInitialization) ? "s" : "t";
 
             if(!pastVarInitialization)
             {
@@ -34,9 +32,6 @@ public class NaiveRegisterAllocator extends RegisterAllocator
             }
             else
             {
-                if(instruction.trim().equals("_program_start:"))
-                    pastFuncInitialization = true;
-
                 String tabString = ""; //keep new code formatted nicely :)
                 for (int i = 0; i < instruction.length(); i++)
                 {
@@ -58,9 +53,9 @@ public class NaiveRegisterAllocator extends RegisterAllocator
                     {
                         if (pieces.length == 3)
                         {
-                            instruction(tabString + "load_var $%0 " + pieces[2], regPrefix);
-                            instruction(tabString + "assign $%1 $%0", regPrefix);
-                            instruction(tabString + "store_var " + pieces[1] + " $%1", regPrefix);
+                            newIr.add(tabString + "load_var $t0 " + pieces[2]);
+                            newIr.add(tabString + "assign $t1 $t0");
+                            newIr.add(tabString + "store_var " + pieces[1] + " $t1");
                         }
                         else if (pieces.length == 4)
                         {
@@ -76,10 +71,10 @@ public class NaiveRegisterAllocator extends RegisterAllocator
                     case "and":
                     case "or":
                     {
-                        instruction(tabString + "load_var $%0 " + pieces[1], regPrefix);
-                        instruction(tabString + "load_var $%1 " + pieces[2], regPrefix);
-                        instruction(tabString + pieces[0] + " $%0 $%1 $%2", regPrefix);
-                        instruction(tabString + "store_var " + pieces[3] + " $%2", regPrefix);
+                        newIr.add(tabString + "load_var $t0 " + pieces[1]);
+                        newIr.add(tabString + "load_var $t1 " + pieces[2]);
+                        newIr.add(tabString + pieces[0] + " $t0 $t1 $t2");
+                        newIr.add(tabString + "store_var " + pieces[3] + " $t2");
                     } break;
 
                     case "goto":
@@ -91,12 +86,12 @@ public class NaiveRegisterAllocator extends RegisterAllocator
                     {
                         if(pieces.length == 2)
                         {
-                            instruction(tabString + "load_var $v0 " + pieces[1], regPrefix);
-                            instruction(tabString + "return $v0", regPrefix);
+                            newIr.add(tabString + "load_var $v0 " + pieces[1]);
+                            newIr.add(tabString + "return $v0");
                         }
                         else
                         {
-                            instruction(tabString + "return", regPrefix);
+                            newIr.add(tabString + "return");
                         }
                     } break;
 
@@ -109,7 +104,7 @@ public class NaiveRegisterAllocator extends RegisterAllocator
                         int arg = 0;
                         for(int i = 2 + offset; i < pieces.length; i++)
                         {
-//                            instruction(tabString + "load_var $a" + arg + " __" + pieces[1 + offset] + "_arg" + arg, regPrefix);
+//                            newIr.add(tabString + "load_var $a" + arg + " __" + pieces[1 + offset] + "_arg" + arg);
 
                             if(arg == 3)
                                 break;
@@ -127,23 +122,23 @@ public class NaiveRegisterAllocator extends RegisterAllocator
                     case "brgeq":
                     case "brleq":
                     {
-                        instruction(tabString + "load_var $%0 " + pieces[1], regPrefix);
-                        instruction(tabString + "load_var $%1 " + pieces[2], regPrefix);
-                        instruction(tabString + pieces[0] + " $%0 $%1 " + pieces[3], regPrefix);
+                        newIr.add(tabString + "load_var $t0 " + pieces[1]);
+                        newIr.add(tabString + "load_var $t1 " + pieces[2]);
+                        newIr.add(tabString + pieces[0] + " $t0 $t1 " + pieces[3]);
                     } break;
 
                     case "array_store":
                     {
-                        instruction(tabString + "load_var $%0 " + pieces[2], regPrefix);
-                        instruction(tabString + "load_var $%1 " + pieces[3], regPrefix);
-                        instruction(tabString + "array_store " + pieces[1] + " $%0 $%1", regPrefix);
+                        newIr.add(tabString + "load_var $t0 " + pieces[2]);
+                        newIr.add(tabString + "load_var $t1 " + pieces[3]);
+                        newIr.add(tabString + "array_store " + pieces[1] + " $t0 $t1");
                     } break;
 
                     case "array_load":
                     {
-                        instruction(tabString + "load_var $%0, " + pieces[3], regPrefix);
-                        instruction(tabString + "array_load $%1 " + pieces[2] + " $%0", regPrefix);
-                        instruction(tabString + "store_var " + pieces[1] + " $%1", regPrefix);
+                        newIr.add(tabString + "load_var $t0, " + pieces[3]);
+                        newIr.add(tabString + "array_load $t1 " + pieces[2] + " $t0");
+                        newIr.add(tabString + "store_var " + pieces[1] + " $t1");
                     } break;
 
                     default:
@@ -151,7 +146,7 @@ public class NaiveRegisterAllocator extends RegisterAllocator
                         //labels
                         if (instruction.contains(":"))
                         {
-                            instruction(tabString + instruction, regPrefix);
+                            newIr.add(tabString + instruction);
                         }
                         else
                         {
@@ -164,10 +159,5 @@ public class NaiveRegisterAllocator extends RegisterAllocator
         }
 
         return newIr.toArray(new String[newIr.size()]);
-    }
-
-    private void instruction(String instruction, String registerPrefix)
-    {
-        newIr.add(instruction.replaceAll("\\%", registerPrefix));
     }
 }

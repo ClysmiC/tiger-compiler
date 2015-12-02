@@ -139,17 +139,23 @@ public class BasicBlockAllocator extends RegisterAllocator
             List<String> variables = new ArrayList<>(variableUses.keySet());
             Collections.sort(variables, (v1, v2) -> variableUses.get(v2) - variableUses.get(v1));
 
-            //map 5 most used variables to registers.
-            //remaining variables will use register 0, 1, 2 as well as memory spills
+            //map 15 most used variables to registers.
+            //remaining variables will use register t0, t1, t2 as well as memory spills
             Map<String, String> varToRegister = new HashMap<>();
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 15; i++)
             {
-                String prefix = (pastFunctionDeclaration) ? "s" : "t";
-
                 if (i >= variables.size())
                     break;
 
-                varToRegister.put(variables.get(i), "$" + prefix + (i + 3));
+                String register;
+
+                if(i < 8)
+                    register = "$s" + i;
+                else
+                    register = "$t" + ((i % 8) + 3); //t3, t4, t5...
+
+
+                varToRegister.put(variables.get(i), register);
             }
 
             //start line gets special treatment, since if the first line is a label
@@ -204,7 +210,6 @@ public class BasicBlockAllocator extends RegisterAllocator
                     continue;
                 }
 
-                String regPrefix = (pastFunctionDeclaration) ? "s" : "t";
                 String[] pieces = instruction.split(" ");
 
                 switch (pieces[0])
@@ -222,7 +227,7 @@ public class BasicBlockAllocator extends RegisterAllocator
                         }
                         else
                         {
-                            targetRegister = "$" + regPrefix + "1";
+                            targetRegister = "$t1";
                             spillResult = true;
                         }
 
@@ -232,8 +237,8 @@ public class BasicBlockAllocator extends RegisterAllocator
                         }
                         else
                         {
-                            newIr.add(tabString + "load_var $" + regPrefix + "0 " + pieces[2]);
-                            sourceRegister = "$" + regPrefix + "0";
+                            newIr.add(tabString + "load_var $t0 " + pieces[2]);
+                            sourceRegister = "$t0";
                         }
 
                         newIr.add(tabString + "assign " + targetRegister + " " + sourceRegister);
@@ -264,7 +269,7 @@ public class BasicBlockAllocator extends RegisterAllocator
                         }
                         else
                         {
-                            targetRegister = "$" + regPrefix + "2";
+                            targetRegister = "$t2";
                             spillResult = true;
                         }
 
@@ -274,8 +279,8 @@ public class BasicBlockAllocator extends RegisterAllocator
                         }
                         else
                         {
-                            newIr.add(tabString + "load_var $" + regPrefix + "0 " + pieces[2]);
-                            leftRegister = "$" + regPrefix + "0";
+                            newIr.add(tabString + "load_var $t0 " + pieces[2]);
+                            leftRegister = "$t0";
                         }
 
                         if (varToRegister.containsKey(pieces[2]))
@@ -284,8 +289,8 @@ public class BasicBlockAllocator extends RegisterAllocator
                         }
                         else
                         {
-                            newIr.add(tabString + "load_var $" + regPrefix + "1 " + pieces[2]);
-                            rightRegister = "$" + regPrefix + "1";
+                            newIr.add(tabString + "load_var $t1 " + pieces[2]);
+                            rightRegister = "$t1";
                         }
 
                         newIr.add(tabString + pieces[0] + " " + leftRegister + " " + rightRegister + " " + targetRegister);
@@ -314,8 +319,8 @@ public class BasicBlockAllocator extends RegisterAllocator
                             }
                             else
                             {
-                                newIr.add(tabString + "load_var $" + regPrefix + "0 " + pieces[1]);
-                                retValRegister = "$" + regPrefix + "0";
+                                newIr.add(tabString + "load_var $t0 " + pieces[1]);
+                                retValRegister = "$t0";
                             }
 
                             newIr.add(tabString + "assign $v0 " + retValRegister);
@@ -381,8 +386,8 @@ public class BasicBlockAllocator extends RegisterAllocator
                         }
                         else
                         {
-                            newIr.add(tabString + "load_var $" + regPrefix + "0 " + pieces[1]);
-                            register1 = "$" + regPrefix + "0";
+                            newIr.add(tabString + "load_var $t0 " + pieces[1]);
+                            register1 = "$t0";
                         }
 
                         if (varToRegister.containsKey(pieces[2]))
@@ -391,8 +396,8 @@ public class BasicBlockAllocator extends RegisterAllocator
                         }
                         else
                         {
-                            newIr.add(tabString + "load_var $" + regPrefix + "1 " + pieces[2]);
-                            register2 = "$" + regPrefix + "1";
+                            newIr.add(tabString + "load_var $t1 " + pieces[2]);
+                            register2 = "$t1";
                         }
 
                         newIr.add(tabString + pieces[0] + " " + register1 + " " + register2 + " " + pieces[3]);
@@ -401,17 +406,17 @@ public class BasicBlockAllocator extends RegisterAllocator
 
                     case "array_store":
                     {
-                        instruction(tabString + "load_var $%0 " + pieces[2], regPrefix);
-                        instruction(tabString + "load_var $%1 " + pieces[3], regPrefix);
-                        instruction(tabString + "array_store " + pieces[1] + " $%0 $%1", regPrefix);
+                        newIr.add(tabString + "load_var $t0 " + pieces[2]);
+                        newIr.add(tabString + "load_var $t1 " + pieces[3]);
+                        newIr.add(tabString + "array_store " + pieces[1] + " $t0 $t1");
                     }
                     break;
 
                     case "array_load":
                     {
-                        instruction(tabString + "load_var $%0, " + pieces[3], regPrefix);
-                        instruction(tabString + "array_load $%1 " + pieces[2] + " $%0", regPrefix);
-                        instruction(tabString + "store_var " + pieces[1] + " $%1", regPrefix);
+                        newIr.add(tabString + "load_var $t0, " + pieces[3]);
+                        newIr.add(tabString + "array_load $t1 " + pieces[2] + " $t0");
+                        newIr.add(tabString + "store_var " + pieces[1] + " $t1");
                     }
                     break;
 
@@ -481,10 +486,5 @@ public class BasicBlockAllocator extends RegisterAllocator
     public boolean isNumeric(String str)
     {
         return str.matches("-?\\d+(\\.\\d+)?");
-    }
-
-    private void instruction(String instruction, String registerPrefix)
-    {
-        newIr.add(instruction.replaceAll("\\%", registerPrefix));
     }
 }

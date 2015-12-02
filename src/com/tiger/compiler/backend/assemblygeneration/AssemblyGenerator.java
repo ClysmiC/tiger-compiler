@@ -3,7 +3,9 @@ package com.tiger.compiler.backend.assemblygeneration;
 import com.tiger.compiler.Output;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AssemblyGenerator
 {
@@ -12,7 +14,7 @@ public class AssemblyGenerator
 
     private List<String> allVariables;
 
-    private boolean[] isRegisterFloat;
+    private Map<String, Boolean> isRegisterFloat;
 
     public AssemblyGenerator(String[] ir)
     {
@@ -21,7 +23,7 @@ public class AssemblyGenerator
 
         allVariables = new ArrayList<>();
 
-        isRegisterFloat = new boolean[10]; //tracks whether each of the registers we use, t0-t9, contains a float
+        isRegisterFloat = new HashMap<>(); //tracks whether each of the registers we use, t0-t9, contains a float
     }
 
     public String[] produceAssembly()
@@ -196,11 +198,7 @@ public class AssemblyGenerator
                 case "and":
                 case "or":
                 {
-                    int leftRegisterNumber = registerNumber(pieces[1]);
-                    int rightRegisterNumber = registerNumber(pieces[2]);
-                    int resultRegisterNumber = registerNumber(pieces[3]);
-
-                    if(!isRegisterFloat[leftRegisterNumber] && !isRegisterFloat[rightRegisterNumber])
+                    if(!isRegisterFloat.get(pieces[1]) && !isRegisterFloat.get(pieces[2]))
                     {
                         if(pieces[0].equals("mult") || pieces[0].equals("div"))
                         {
@@ -212,9 +210,9 @@ public class AssemblyGenerator
                             asm.add(pieces[0] + " " + pieces[3] + ", " + pieces[1] + ", " + pieces[2]);
                         }
 
-                        isRegisterFloat[resultRegisterNumber] = false;
+                        isRegisterFloat.put(pieces[3], false);
                     }
-                    else if (!isRegisterFloat[leftRegisterNumber] && isRegisterFloat[rightRegisterNumber])
+                    else if (!isRegisterFloat.get(pieces[1]) && isRegisterFloat.get(pieces[2]))
                     {
                         if(pieces[0].equals("mult"))
                             pieces[0] = "mul";
@@ -225,9 +223,10 @@ public class AssemblyGenerator
                         asm.add(pieces[0] + ".s $f2, $f0, $f1");
 
                         asm.add("mfc1 " + pieces[3] + ", $f2");
-                        isRegisterFloat[resultRegisterNumber] = true;
+
+                        isRegisterFloat.put(pieces[3], true);
                     }
-                    else if (isRegisterFloat[leftRegisterNumber] && !isRegisterFloat[rightRegisterNumber])
+                    else if (isRegisterFloat.get(pieces[1]) && !isRegisterFloat.get(pieces[2]))
                     {
                         if(pieces[0].equals("mult"))
                             pieces[0] = "mul";
@@ -238,7 +237,8 @@ public class AssemblyGenerator
                         asm.add(pieces[0] + ".s $f2, $f0, $f1");
 
                         asm.add("mfc1 " + pieces[3] + ", $f2");
-                        isRegisterFloat[resultRegisterNumber] = true;
+
+                        isRegisterFloat.put(pieces[3], true);
                     }
                     else
                     {
@@ -250,7 +250,8 @@ public class AssemblyGenerator
                         asm.add(pieces[0] + ".s $f2, $f0, $f1");
 
                         asm.add("mfc1 " + pieces[3] + ", $f2");
-                        isRegisterFloat[resultRegisterNumber] = true;
+
+                        isRegisterFloat.put(pieces[3], true);
                     }
                 } break;
 
@@ -261,19 +262,6 @@ public class AssemblyGenerator
 
                 case "call":
                 {
-//                    int arg = 0;
-//                    //put args in registers a0-a3
-//                    //TODO: put additional args on stack
-//                    for(int j = 2; j < pieces.length; j++)
-//                    {
-//                        asm.add("move $a" + arg + ", " + pieces[j]);
-//
-//                        if(arg == 3)
-//                            break;
-//
-//                        arg++;
-//                    }
-
                     asm.add("addi $sp, $sp, -4");
                     asm.add("sw $ra, 0($sp)");
                     asm.add("jal " + pieces[1]);
@@ -362,12 +350,16 @@ public class AssemblyGenerator
                     }
 
                     boolean floatInRegister = isFloat(pieces[2]);
-                    int registerNumber = registerNumber(pieces[1]);
-                    isRegisterFloat[registerNumber] = floatInRegister;
+                    isRegisterFloat.put(pieces[1], floatInRegister);
                 } break;
 
                 case "load_var":
                 {
+                    if(pieces[2].equals("flute_float"))
+                    {
+                        int debug = 0;
+                    }
+
                     if(isNumeric(pieces[2]))
                     {
                         if(pieces[2].contains(".")) //is float
@@ -384,8 +376,7 @@ public class AssemblyGenerator
                         asm.add("lw " + pieces[1] + ", " + pieces[2]);
 
                     boolean floatInRegister = isFloat(pieces[2]);
-                    int registerNumber = registerNumber(pieces[1]);
-                    isRegisterFloat[registerNumber] = floatInRegister;
+                    isRegisterFloat.put(pieces[1], floatInRegister);
                 } break;
 
                 case "store_var":
@@ -428,20 +419,11 @@ public class AssemblyGenerator
     {
         if(str.contains("$"))
         {
-            str = str.replaceAll("\\$", "");
-            int registerNumber = Integer.parseInt(str);
-
-            return isRegisterFloat[registerNumber];
+            return isRegisterFloat.get(str);
         }
         else
         {
             return str.contains(".") || str.startsWith("_f") || str.endsWith("_float");
         }
-    }
-
-    private int registerNumber(String str)
-    {
-        str = str.replaceAll("\\$[a-z]", "");
-        return Integer.parseInt(str);
     }
 }
