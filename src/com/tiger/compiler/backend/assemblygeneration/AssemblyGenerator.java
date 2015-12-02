@@ -69,7 +69,18 @@ public class AssemblyGenerator
                     }
                     else if(pieces[1].endsWith("_float"))
                     {
-                        asm.add(pieces[1] + ": .float " + pieces[2]);
+                        String value;
+
+                        if(pieces[2].contains("."))
+                        {
+                            value = pieces[2];
+                        }
+                        else
+                        {
+                            value = pieces[2] + ".0";
+                        }
+
+                        asm.add(pieces[1] + ": .float " + value);
                     }
                     else
                     {
