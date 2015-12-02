@@ -56,10 +56,6 @@ public class NaiveRegisterAllocator extends RegisterAllocator
                 {
                     case "assign":
                     {
-                        //non-array
-                        //TODO: handle array assignment
-                        //note: this should only happen in variable initialization
-
                         if (pieces.length == 3)
                         {
                             instruction(tabString + "load_var $%0 " + pieces[2], regPrefix);

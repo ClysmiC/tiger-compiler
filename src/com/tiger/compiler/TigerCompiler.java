@@ -1,6 +1,7 @@
 package com.tiger.compiler;
 
 import com.tiger.compiler.backend.assemblygeneration.AssemblyGenerator;
+import com.tiger.compiler.backend.registerallocation.BasicBlockAllocator;
 import com.tiger.compiler.backend.registerallocation.NaiveRegisterAllocator;
 import com.tiger.compiler.backend.registerallocation.cfg.CfgBuilder;
 import com.tiger.compiler.frontend.irgeneration.TigerIrGenerator;
@@ -177,10 +178,6 @@ public class TigerCompiler
                 Output.irPrintln("---------Naive Allocation---------");
                 Output.irPrintln("==================================\n\n");
 
-                //TODO: remove these lines when I put them in the BasicBlockAllocator
-                CfgBuilder cfgBuilder = new CfgBuilder(ir);
-                cfgBuilder.constructCfg();
-
                 //ADD REGISTER LOAD/STORES INTO IR-CODE
                 NaiveRegisterAllocator naiveAllocator = new NaiveRegisterAllocator(ir);
                 String[] irWithAllocation = naiveAllocator.insertAllocationStatements();
@@ -202,6 +199,9 @@ public class TigerCompiler
                         Output.irPrintln(codeLine);
                     }
                 }
+
+                BasicBlockAllocator basicBlockAllocator = new BasicBlockAllocator(ir);
+                basicBlockAllocator.insertAllocationStatements();
 
                 AssemblyGenerator asmGenerator = new AssemblyGenerator(irWithAllocation);
                 String[] assemblyCode = asmGenerator.produceAssembly();
