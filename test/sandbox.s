@@ -54,7 +54,6 @@ move $t3, $t4
 add $t5, $t3, $t3
 move $v0, $t5
 sw $t3, _doubleMe_input_int
-sw $t4, __doubleMe_arg0
 sw $t5, _i4
 jr $ra
 
@@ -87,8 +86,6 @@ _FOR_start0:
 lw $s3, loopCounter_int
 lw $s4, _i10
 bgt $s3, $s4, _FOR_end0
-sw $s3, loopCounter_int
-sw $s4, _i10
 lw $s5, loopCounter_int
 lw $s3, _i11
 lw $s4, _i12
@@ -97,7 +94,6 @@ move $s3, $s0
 and $s4, $s5, $s3
 li $s1, 0
 beq $s4, $s1, _ELSE_start0
-sw $s5, loopCounter_int
 sw $s3, _i11
 sw $s4, _i12
 lw $s3, _i13
@@ -106,7 +102,6 @@ lw $s4, x_int
 add $s3, $s4, $s5
 move $s4, $s3
 sw $s3, _i13
-sw $s5, y_int
 sw $s4, x_int
 j _IF_end0
 
@@ -117,7 +112,6 @@ lw $s4, x_int
 add $s3, $s4, $s5
 move $s4, $s3
 sw $s3, _i14
-sw $s5, z_int
 sw $s4, x_int
 
 _IF_end0:
@@ -132,7 +126,6 @@ lw $s3, __doubleMe_arg0
 lw $s4, x_int
 move $s3, $s4
 sw $s3, __doubleMe_arg0
-sw $s4, x_int
 jal doubleMe
 sw $v0, _i15
 lw $s3, _f17
@@ -160,7 +153,6 @@ jal printi
 lw $s4, flute_float
 lw $s3, __printf_arg0
 move $s3, $s4
-sw $s4, flute_float
 sw $s3, __printf_arg0
 jal printf
 

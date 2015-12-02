@@ -171,6 +171,10 @@ public class BasicBlockAllocator extends RegisterAllocator
             //may reside in this string, to be printed after the stores happen
             String delayedInstruction = "";
 
+            //keep track of which variables were changed in register, so we know which ones we have
+            //to store
+            Set<String> modifiedVariables = new HashSet<>();
+
             for (int i = node.getStartLine(); i <= node.getEndLine(); i++)
             {
                 String instruction = oldIr[i];
@@ -214,6 +218,7 @@ public class BasicBlockAllocator extends RegisterAllocator
                         if (varToRegister.containsKey(pieces[1]))
                         {
                             targetRegister = varToRegister.get(pieces[1]);
+                            modifiedVariables.add(pieces[1]);
                         }
                         else
                         {
@@ -255,6 +260,7 @@ public class BasicBlockAllocator extends RegisterAllocator
                         if (varToRegister.containsKey(pieces[3]))
                         {
                             targetRegister = varToRegister.get(pieces[3]);
+                            modifiedVariables.add(pieces[3]);
                         }
                         else
                         {
@@ -422,7 +428,8 @@ public class BasicBlockAllocator extends RegisterAllocator
             //load all variables as soon as we enter block (right after label)
             for (String variable : varToRegister.keySet())
             {
-                newIr.add("\tstore_var " + variable + " " + varToRegister.get(variable));
+                if(modifiedVariables.contains(variable))
+                    newIr.add("\tstore_var " + variable + " " + varToRegister.get(variable));
             }
 
             if (!delayedInstruction.isEmpty())
