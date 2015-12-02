@@ -496,7 +496,8 @@ public class TigerIrGenerator
 
             case "STAT":
             {
-                code.add("\n\t#Statement on line " + node.getLineNumber() + " of source code.");
+                code.add("#");
+                code.add("\t#Statement on line " + node.getLineNumber() + " of source code.");
 
                 Map<String, Object> myAttributes = new HashMap<>();
                 attributes.put(node, myAttributes);
