@@ -14,6 +14,13 @@ let
 	begin
 		return input + input;
 	end;
+
+	function quadrupleMe (input : int) : int
+	begin
+		input := doubleMe(input);
+		input := doubleMe(input);
+		return input;
+	end;
 in
 	for loopCounter := 1 + 3 to 6 + 7
 	do
@@ -24,7 +31,7 @@ in
 		endif;
 	enddo;
 
-	x := doubleMe(x);
+	x := quadrupleMe(x);
 	flute := flute * 2;
 
 	printi(x);

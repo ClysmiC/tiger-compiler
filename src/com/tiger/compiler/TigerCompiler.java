@@ -37,7 +37,9 @@ public class TigerCompiler
         if(args.length == 2 && args[1].equals("-o"))
             valid = false;
 
-        List<String> validOptions = new ArrayList<>(Arrays.asList("-t", "-pt", "-st", "-ir", "-irc", "-all", "-allc", "-o"));
+        List<String> validOptions = new ArrayList<>(Arrays.asList("-t", "-pt", "-st", "-ir", "-irc", "-all", "-allc", "-o", "-r1", "-r2"));
+
+        int regAllocScheme = 2;
 
         for (int i = 1; i < args.length; i++)
         {
@@ -93,6 +95,14 @@ public class TigerCompiler
                 case "-o":
                     Output.printToFile = true;
                     break;
+                case "-r1":
+                    validOptions.remove("-r2");
+                    regAllocScheme = 1;
+                    break;
+                case "-r2":
+                    validOptions.remove("-r1");
+                    regAllocScheme = 2;
+                    break;
                 default:
                     valid = false;
             }
@@ -110,6 +120,9 @@ public class TigerCompiler
             System.out.println("\t-all  : Shorthand for -t -p -st -ir. May not be used with -irc or -allc flags.");
             System.out.println("\t-allc : Shorthand for -t -p -st -irc. May not be used with -ir or -all flags.");
             System.out.println("\t-o    : Output to file named \"<input-file>.out\". May not be used unless\n\t        other flag(s) are set.");
+            System.out.println("\t-r1   : Use naive register allocation. May not be used with -r2 flag.");
+            System.out.println("\t-r2   : Use basic block graph coloring register allocation (default). May not be used with -r1 flag.");
+
             System.exit(0);
         }
 
@@ -174,54 +187,62 @@ public class TigerCompiler
                     }
                 }
 
-                Output.irPrintln("\n\n==================================");
-                Output.irPrintln("---------Naive Allocation---------");
-                Output.irPrintln("==================================\n\n");
+                String[] irWithAllocation = null;
 
-                //ADD REGISTER LOAD/STORES INTO IR-CODE
-                NaiveRegisterAllocator naiveAllocator = new NaiveRegisterAllocator(ir);
-                String[] irWithAllocation = naiveAllocator.insertAllocationStatements();
-
-                //PRINT IR CODE WITH ALLOCATION STATEMENTS
-                Output.irPrintln("");
-                for (String codeLine : irWithAllocation)
+                if (regAllocScheme == 1)
                 {
-                    //Only print comments in debug mode
-                    if (codeLine.trim().startsWith("#"))
+                    Output.irPrintln("\n\n==================================");
+                    Output.irPrintln("---------Naive Allocation---------");
+                    Output.irPrintln("==================================\n\n");
+
+                    //ADD REGISTER LOAD/STORES INTO IR-CODE
+                    NaiveRegisterAllocator naiveAllocator = new NaiveRegisterAllocator(ir);
+                    irWithAllocation = naiveAllocator.insertAllocationStatements();
+
+                    //PRINT IR CODE WITH ALLOCATION STATEMENTS
+                    Output.irPrintln("");
+                    for (String codeLine : irWithAllocation)
                     {
-                        if (codeLine.length() == 1)
-                            Output.irPrintln("");
+                        //Only print comments in debug mode
+                        if (codeLine.trim().startsWith("#"))
+                        {
+                            if (codeLine.length() == 1)
+                                Output.irPrintln("");
+                            else
+                                Output.irPrintln(codeLine);
+                        }
                         else
+                        {
                             Output.irPrintln(codeLine);
-                    }
-                    else
-                    {
-                        Output.irPrintln(codeLine);
+                        }
                     }
                 }
-
-                Output.irPrintln("\n\n==================================");
-                Output.irPrintln("------Basic Block Allocation------");
-                Output.irPrintln("==================================\n\n");
-
-                BasicBlockAllocator basicBlockAllocator = new BasicBlockAllocator(ir);
-                irWithAllocation = basicBlockAllocator.insertAllocationStatements();
-
-                //PRINT IR CODE WITH ALLOCATION STATEMENTS
-                Output.irPrintln("");
-                for (String codeLine : irWithAllocation)
+                else if (regAllocScheme == 2)
                 {
-                    //Only print comments in debug mode
-                    if (codeLine.trim().startsWith("#"))
+
+                    Output.irPrintln("\n\n==================================");
+                    Output.irPrintln("------Basic Block Allocation------");
+                    Output.irPrintln("==================================\n\n");
+
+                    BasicBlockAllocator basicBlockAllocator = new BasicBlockAllocator(ir);
+                    irWithAllocation = basicBlockAllocator.insertAllocationStatements();
+
+                    //PRINT IR CODE WITH ALLOCATION STATEMENTS
+                    Output.irPrintln("");
+                    for (String codeLine : irWithAllocation)
                     {
-                        if (codeLine.length() == 1)
-                            Output.irPrintln("");
+                        //Only print comments in debug mode
+                        if (codeLine.trim().startsWith("#"))
+                        {
+                            if (codeLine.length() == 1)
+                                Output.irPrintln("");
+                            else
+                                Output.irPrintln(codeLine);
+                        }
                         else
+                        {
                             Output.irPrintln(codeLine);
-                    }
-                    else
-                    {
-                        Output.irPrintln(codeLine);
+                        }
                     }
                 }
 
