@@ -339,29 +339,12 @@ public class BasicBlockAllocator extends RegisterAllocator
                     {
                         int offset = pieces[0].equals("call") ? 0 : 1;
 
-                        String call = tabString + pieces[0];
-
-                        if(pieces[0].equals("callr"))
-                            call += " " + pieces[1];
-
-
                         int arg = 0;
                         for (int j = 2 + offset; j < pieces.length; j++)
                         {
 
                             if (arg == 3)
                                 break;
-
-                            String argRegister;
-                            if(varToRegister.containsKey(pieces[j]))
-                            {
-                                argRegister = varToRegister.get(pieces[j]);
-//                                newIr.add(tabString + "assign $a" + arg + " " + argRegister);
-                            }
-                            else
-                            {
-//                                newIr.add(tabString + "load_var $a" + arg + " __" + pieces[1 + offset] + "_arg" + arg);
-                            }
 
                             arg++;
                         }
@@ -406,17 +389,61 @@ public class BasicBlockAllocator extends RegisterAllocator
 
                     case "array_store":
                     {
-                        newIr.add(tabString + "load_var $t0 " + pieces[2]);
-                        newIr.add(tabString + "load_var $t1 " + pieces[3]);
-                        newIr.add(tabString + "array_store " + pieces[1] + " $t0 $t1");
+                        String sourceRegister;
+                        if(varToRegister.containsKey(pieces[3]))
+                        {
+                            sourceRegister = varToRegister.get(pieces[3]);
+                        }
+                        else
+                        {
+                            newIr.add("load_var $t0, " + pieces[3]);
+                            sourceRegister = "$t0";
+                        }
+
+                        String indexRegister;
+                        if(varToRegister.containsKey(pieces[2]))
+                        {
+                            indexRegister = varToRegister.get(pieces[2]);
+                        }
+                        else
+                        {
+                            newIr.add("load_var $t1, " + pieces[2]);
+                            indexRegister = "$t1";
+                        }
+
+                        newIr.add(tabString + "array_store " + pieces[1] + " " + indexRegister + " " + sourceRegister);
                     }
                     break;
 
                     case "array_load":
                     {
-                        newIr.add(tabString + "load_var $t0, " + pieces[3]);
-                        newIr.add(tabString + "array_load $t1 " + pieces[2] + " $t0");
-                        newIr.add(tabString + "store_var " + pieces[1] + " $t1");
+                        String targetRegister;
+                        if(varToRegister.containsKey(pieces[1]))
+                        {
+                            targetRegister = varToRegister.get(pieces[1]);
+                        }
+                        else
+                        {
+                            targetRegister = "$t0";
+                        }
+
+                        String indexRegister;
+                        if(varToRegister.containsKey(pieces[3]))
+                        {
+                            indexRegister = varToRegister.get(pieces[3]);
+                        }
+                        else
+                        {
+                            newIr.add("load_var $t1, " + pieces[3]);
+                            indexRegister = "$t1";
+                        }
+
+
+                        newIr.add(tabString + "array_load " + targetRegister + " " + pieces[2] + " " + indexRegister);
+
+                        //spill
+                        if(targetRegister.equals("$t0"))
+                            newIr.add(tabString + "store_var " + pieces[1] + " $t0");
                     }
                     break;
 
