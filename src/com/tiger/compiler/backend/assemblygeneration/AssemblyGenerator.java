@@ -369,7 +369,17 @@ public class AssemblyGenerator
                 case "load_var":
                 {
                     if(isNumeric(pieces[2]))
-                        asm.add("li " + pieces[1] + ", " + pieces[2]);
+                    {
+                        if(pieces[2].contains(".")) //is float
+                        {
+                            asm.add("li.s $f0, " + pieces[2]);
+                            asm.add("mfc1 " + pieces[1] + " $f0");
+                        }
+                        else
+                        {
+                            asm.add("li " + pieces[1] + ", " + pieces[2]);
+                        }
+                    }
                     else
                         asm.add("lw " + pieces[1] + ", " + pieces[2]);
 

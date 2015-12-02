@@ -26,8 +26,10 @@ in
 	do
 		if (loopCounter & 1) then
 			x := x + y;
+			flute := x / 1.5;
 		else
 			x := x + z;
+			flute := x / 1.5;
 		endif;
 	enddo;
 
