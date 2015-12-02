@@ -109,7 +109,7 @@ public class NaiveRegisterAllocator extends RegisterAllocator
                         int arg = 0;
                         for(int i = 2 + offset; i < pieces.length; i++)
                         {
-                            instruction(tabString + "load_var $a" + arg + " __" + pieces[1 + offset] + "_arg" + arg, regPrefix);
+//                            instruction(tabString + "load_var $a" + arg + " __" + pieces[1 + offset] + "_arg" + arg, regPrefix);
 
                             if(arg == 3)
                                 break;

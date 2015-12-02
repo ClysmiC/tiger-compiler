@@ -139,15 +139,18 @@ public class AssemblyGenerator
             asm.add("__printf_arg0: .word 0");
 
         asm.add("\n\n.text");
+        asm.add("\nj main");
 
         //library functions
         asm.add("\nprinti:");
         asm.add("li $v0, 1");
+        asm.add("lw $a0, __printi_arg0");
         asm.add("syscall");
         asm.add("jr $ra");
 
         asm.add("\nprintf:");
         asm.add("li $v0, 2");
+        asm.add("lw $a0, __printf_arg0");
         asm.add("mtc1 $a0, $f12");
         asm.add("syscall");
         asm.add("jr $ra");

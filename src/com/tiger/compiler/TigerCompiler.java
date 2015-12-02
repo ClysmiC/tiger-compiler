@@ -200,8 +200,30 @@ public class TigerCompiler
                     }
                 }
 
+                Output.irPrintln("\n\n==================================");
+                Output.irPrintln("------Basic Block Allocation------");
+                Output.irPrintln("==================================\n\n");
+
                 BasicBlockAllocator basicBlockAllocator = new BasicBlockAllocator(ir);
-                basicBlockAllocator.insertAllocationStatements();
+                irWithAllocation = basicBlockAllocator.insertAllocationStatements();
+
+                //PRINT IR CODE WITH ALLOCATION STATEMENTS
+                Output.irPrintln("");
+                for (String codeLine : irWithAllocation)
+                {
+                    //Only print comments in debug mode
+                    if (codeLine.trim().startsWith("#"))
+                    {
+                        if (codeLine.length() == 1)
+                            Output.irPrintln("");
+                        else
+                            Output.irPrintln(codeLine);
+                    }
+                    else
+                    {
+                        Output.irPrintln(codeLine);
+                    }
+                }
 
                 AssemblyGenerator asmGenerator = new AssemblyGenerator(irWithAllocation);
                 String[] assemblyCode = asmGenerator.produceAssembly();

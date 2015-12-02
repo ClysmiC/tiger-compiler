@@ -22,40 +22,28 @@ public class BasicBlockAllocator extends RegisterAllocator
         CfgBuilder cfgBuilder = new CfgBuilder(oldIr);
         cfg = cfgBuilder.constructCfg();
 
-        CfgNode node;
+        boolean pastFunctionDeclaration = false;
 
+        CfgNode node;
         while((node = nextBlock()) != null)
         {
             //calculate uses for each variable
             Map<String, Integer> variableUses = new HashMap<>();
 
-            for(int i = node.getStartLine(); i <= node.getEndLine(); i++)
+            for (int i = node.getStartLine(); i <= node.getEndLine(); i++)
             {
                 String instruction = oldIr[i];
-
-                String tabString = ""; //keep new code formatted nicely :)
-                for (int j = 0; j < instruction.length(); j++)
-                {
-                    if (instruction.charAt(j) == ' ')
-                        tabString += " ";
-                    else if (instruction.charAt(j) == '\t')
-                        tabString += "\t";
-                    else
-                        break;
-                }
-
                 instruction = instruction.replaceAll(",", "");
                 instruction = instruction.trim();
 
-                if(instruction.isEmpty() || instruction.startsWith("#"))
+                if (instruction.isEmpty() || instruction.startsWith("#"))
                 {
-                    newIr.add(tabString + instruction);
                     continue;
                 }
 
                 String[] pieces = instruction.split(" ");
 
-                switch(pieces[0])
+                switch (pieces[0])
                 {
 
                     case "assign":
@@ -70,7 +58,8 @@ public class BasicBlockAllocator extends RegisterAllocator
                             Output.println("Internal compiler error. Malformed 'assign' IR statement or array assign outside in non-initialization.");
                             System.exit(-1);
                         }
-                    } break;
+                    }
+                    break;
 
                     case "add":
                     case "sub":
@@ -82,15 +71,18 @@ public class BasicBlockAllocator extends RegisterAllocator
                         incrementUse(variableUses, pieces[1]);
                         incrementUse(variableUses, pieces[2]);
                         incrementUse(variableUses, pieces[3]);
-                    } break;
+                    }
+                    break;
 
                     case "goto":
                     {
-                    } break;
+                    }
+                    break;
 
                     case "return":
                     {
-                    } break;
+                    }
+                    break;
 
 
                     case "call":
@@ -98,10 +90,11 @@ public class BasicBlockAllocator extends RegisterAllocator
                     {
                         int offset = pieces[0].equals("callr") ? 1 : 0;
 
-                        for(int j = 2 + offset; j < pieces.length; j++)
+                        for (int j = 2 + offset; j < pieces.length; j++)
                             incrementUse(variableUses, pieces[j]);
 
-                    } break;
+                    }
+                    break;
 
                     case "breq":
                     case "brneq":
@@ -112,23 +105,27 @@ public class BasicBlockAllocator extends RegisterAllocator
                     {
                         incrementUse(variableUses, pieces[1]);
                         incrementUse(variableUses, pieces[2]);
-                    } break;
+                    }
+                    break;
 
                     case "array_store":
                     {
                         //too complicated, screw it
-                    } break;
+                    }
+                    break;
 
                     case "array_load":
                     {
-                    } break;
+                    }
+                    break;
 
                     default:
                     {
                         //labels
                         if (instruction.contains(":"))
                         {
-                            newIr.add(tabString + instruction);
+                            if (instruction.equals("_program_start:"))
+                                pastFunctionDeclaration = true;
                         }
                         else
                         {
@@ -142,7 +139,298 @@ public class BasicBlockAllocator extends RegisterAllocator
             List<String> variables = new ArrayList<>(variableUses.keySet());
             Collections.sort(variables, (v1, v2) -> variableUses.get(v2) - variableUses.get(v1));
 
-            int debug = 0;
+            //map 5 most used variables to registers.
+            //remaining variables will use register 0, 1, 2 as well as memory spills
+            Map<String, String> varToRegister = new HashMap<>();
+            for (int i = 0; i < 5; i++)
+            {
+                String prefix = (pastFunctionDeclaration) ? "s" : "t";
+
+                if (i >= variables.size())
+                    break;
+
+                varToRegister.put(variables.get(i), "$" + prefix + (i + 3));
+            }
+
+            //start line gets special treatment, since if the first line is a label
+            //we want to print it, but if it is a statement, we want to do the loads
+            //before the stmts
+            if (oldIr[node.getStartLine()].contains(":"))
+            {
+                newIr.add(oldIr[node.getStartLine()]);
+            }
+
+            //load all variables as soon as we enter block (right after label)
+            for (String variable : varToRegister.keySet())
+            {
+                newIr.add("\tload_var " + varToRegister.get(variable) + " " + variable);
+            }
+
+            //for something like an unconditional branch, we want to make sure we print it AFTER
+            //we have put registers for the block back into memory. block ending instruction
+            //may reside in this string, to be printed after the stores happen
+            String delayedInstruction = "";
+
+            for (int i = node.getStartLine(); i <= node.getEndLine(); i++)
+            {
+                String instruction = oldIr[i];
+                instruction = instruction.replaceAll(",", "");
+
+                String tabString = ""; //keep new code formatted nicely :)
+                for (int j = 0; j < instruction.length(); j++)
+                {
+                    if (instruction.charAt(j) == ' ')
+                        tabString += " ";
+                    else if (instruction.charAt(j) == '\t')
+                        tabString += "\t";
+                    else
+                        break;
+                }
+
+                instruction = instruction.trim();
+
+                //only first stmt should be label, which is handled before loop
+                if (instruction.contains(":"))
+                    continue;
+
+                if (instruction.isEmpty() || instruction.startsWith("#"))
+                {
+                    newIr.add(tabString + instruction);
+
+                    continue;
+                }
+
+                String regPrefix = (pastFunctionDeclaration) ? "s" : "t";
+                String[] pieces = instruction.split(" ");
+
+                switch (pieces[0])
+                {
+                    case "assign":
+                    {
+                        boolean spillResult = false;
+
+                        String targetRegister;
+                        String sourceRegister;
+                        if (varToRegister.containsKey(pieces[1]))
+                        {
+                            targetRegister = varToRegister.get(pieces[1]);
+                        }
+                        else
+                        {
+                            targetRegister = "$" + regPrefix + "1";
+                            spillResult = true;
+                        }
+
+                        if (varToRegister.containsKey(pieces[2]))
+                        {
+                            sourceRegister = varToRegister.get(pieces[2]);
+                        }
+                        else
+                        {
+                            newIr.add(tabString + "load_var $" + regPrefix + "0 " + pieces[2]);
+                            sourceRegister = "$" + regPrefix + "0";
+                        }
+
+                        newIr.add(tabString + "assign " + targetRegister + " " + sourceRegister);
+
+                        if (spillResult)
+                        {
+                            newIr.add(tabString + "store_var " + pieces[1] + " " + targetRegister);
+                        }
+                    }
+                    break;
+
+                    case "add":
+                    case "sub":
+                    case "mult":
+                    case "div":
+                    case "and":
+                    case "or":
+                    {
+                        boolean spillResult = false;
+
+                        String targetRegister;
+                        String leftRegister;
+                        String rightRegister;
+                        if (varToRegister.containsKey(pieces[3]))
+                        {
+                            targetRegister = varToRegister.get(pieces[3]);
+                        }
+                        else
+                        {
+                            targetRegister = "$" + regPrefix + "2";
+                            spillResult = true;
+                        }
+
+                        if (varToRegister.containsKey(pieces[1]))
+                        {
+                            leftRegister = varToRegister.get(pieces[1]);
+                        }
+                        else
+                        {
+                            newIr.add(tabString + "load_var $" + regPrefix + "0 " + pieces[2]);
+                            leftRegister = "$" + regPrefix + "0";
+                        }
+
+                        if (varToRegister.containsKey(pieces[2]))
+                        {
+                            rightRegister = varToRegister.get(pieces[2]);
+                        }
+                        else
+                        {
+                            newIr.add(tabString + "load_var $" + regPrefix + "1 " + pieces[2]);
+                            rightRegister = "$" + regPrefix + "1";
+                        }
+
+                        newIr.add(tabString + pieces[0] + " " + leftRegister + " " + rightRegister + " " + targetRegister);
+
+                        if (spillResult)
+                        {
+                            newIr.add(tabString + "store_var " + pieces[3] + " " + targetRegister);
+                        }
+                    }
+                    break;
+
+                    case "goto":
+                    {
+                        delayedInstruction = tabString + instruction;
+                    }
+                    break;
+
+                    case "return":
+                    {
+                        if (pieces.length == 2)
+                        {
+                            String retValRegister;
+                            if (varToRegister.containsKey(pieces[1]))
+                            {
+                                retValRegister = varToRegister.get(pieces[1]);
+                            }
+                            else
+                            {
+                                newIr.add(tabString + "load_var $" + regPrefix + "0 " + pieces[1]);
+                                retValRegister = "$" + regPrefix + "0";
+                            }
+
+                            newIr.add(tabString + "assign $v0 " + retValRegister);
+                            delayedInstruction = tabString + "return $v0";
+                        }
+                        else
+                        {
+                            delayedInstruction = tabString + "return";
+                        }
+                    }
+                    break;
+
+
+                    case "call":
+                    case "callr":
+                    {
+                        int offset = pieces[0].equals("call") ? 0 : 1;
+
+                        String call = tabString + pieces[0];
+
+                        if(pieces[0].equals("callr"))
+                            call += " " + pieces[1];
+
+
+                        int arg = 0;
+                        for (int j = 2 + offset; j < pieces.length; j++)
+                        {
+
+                            if (arg == 3)
+                                break;
+
+                            String argRegister;
+                            if(varToRegister.containsKey(pieces[j]))
+                            {
+                                argRegister = varToRegister.get(pieces[j]);
+//                                newIr.add(tabString + "assign $a" + arg + " " + argRegister);
+                            }
+                            else
+                            {
+//                                newIr.add(tabString + "load_var $a" + arg + " __" + pieces[1 + offset] + "_arg" + arg);
+                            }
+
+                            arg++;
+                        }
+
+                        delayedInstruction = tabString + instruction;
+                    }
+                    break;
+
+                    case "breq":
+                    case "brneq":
+                    case "brlt":
+                    case "brgt":
+                    case "brgeq":
+                    case "brleq":
+                    {
+                        String register1;
+                        String register2;
+
+                        if (varToRegister.containsKey(pieces[1]))
+                        {
+                            register1 = varToRegister.get(pieces[1]);
+                        }
+                        else
+                        {
+                            newIr.add(tabString + "load_var $" + regPrefix + "0 " + pieces[1]);
+                            register1 = "$" + regPrefix + "0";
+                        }
+
+                        if (varToRegister.containsKey(pieces[2]))
+                        {
+                            register2 = varToRegister.get(pieces[2]);
+                        }
+                        else
+                        {
+                            newIr.add(tabString + "load_var $" + regPrefix + "1 " + pieces[2]);
+                            register2 = "$" + regPrefix + "1";
+                        }
+
+                        newIr.add(tabString + pieces[0] + " " + register1 + " " + register2 + " " + pieces[3]);
+                    }
+                    break;
+
+                    case "array_store":
+                    {
+                        instruction(tabString + "load_var $%0 " + pieces[2], regPrefix);
+                        instruction(tabString + "load_var $%1 " + pieces[3], regPrefix);
+                        instruction(tabString + "array_store " + pieces[1] + " $%0 $%1", regPrefix);
+                    }
+                    break;
+
+                    case "array_load":
+                    {
+                        instruction(tabString + "load_var $%0, " + pieces[3], regPrefix);
+                        instruction(tabString + "array_load $%1 " + pieces[2] + " $%0", regPrefix);
+                        instruction(tabString + "store_var " + pieces[1] + " $%1", regPrefix);
+                    }
+                    break;
+
+                    default:
+                    {
+                        Output.println("\n\nERROR: Internal compiler error in NaiveRegisterAllocator.");
+                        System.exit(-1);
+                    }
+                }
+                //replace variables in IR instructions with their registers
+                //if they aren't within a register, do naive load, store, etc with registers 0, 1, 2
+            }
+
+            //load all variables as soon as we enter block (right after label)
+            for (String variable : varToRegister.keySet())
+            {
+                newIr.add("\tstore_var " + variable + " " + varToRegister.get(variable));
+            }
+
+            if (!delayedInstruction.isEmpty())
+            {
+                newIr.add(delayedInstruction);
+            }
+
+            lineNumber = node.getEndLine() + 1;
         }
 
         return newIr.toArray(new String[newIr.size()]);
@@ -161,7 +449,7 @@ public class BasicBlockAllocator extends RegisterAllocator
                 }
             }
 
-            newIr.add(oldIr[lineNumber]);
+            newIr.add(oldIr[lineNumber].replaceAll(",", ""));
             lineNumber++;
         }
 
@@ -186,5 +474,10 @@ public class BasicBlockAllocator extends RegisterAllocator
     public boolean isNumeric(String str)
     {
         return str.matches("-?\\d+(\\.\\d+)?");
+    }
+
+    private void instruction(String instruction, String registerPrefix)
+    {
+        newIr.add(instruction.replaceAll("\\%", registerPrefix));
     }
 }
