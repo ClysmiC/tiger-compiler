@@ -1,13 +1,9 @@
 let
-	type ArrayInt = array[100] of int;
+	type ArrayInt = array[2] of int;
 
-	var myArray : ArrayInt;
-	var x : int := 0;
+	var buffer : ArrayInt;
 	var y : int := 7;
 	var z : int := 20;
-
-	var loopCounter : int;
-	var loopCounter2 : int;
 
 	var flute : float := 3.5;
 
@@ -22,29 +18,15 @@ let
 		input := doubleMe(input);
 		return input;
 	end;
+
+	function fillArray( firstInt : int, secondInt: int)
+        begin
+        	buffer[0] := firstInt;
+        	buffer[1] := secondInt;
+        end;
 in
-	for loopCounter := 1 + 3 to 6 + 7
-	do
-		if (loopCounter & 1) then
-			x := x + y;
-			flute := x / 1.5;
-		else
-			x := x + z;
-			flute := x / 1.5;
-			x := x - 3;
-			x := x + 3;
-			x := x + loopCounter;
-
-			for loopCounter2 := 1 to 4
-			do
-				x := x;
-			enddo;
-		endif;
-	enddo;
-
-	x := quadrupleMe(x);
-	flute := flute * 2;
-
-	printi(x);
-	printf(flute);
+	fillArray(y, z);
+	printi(buffer[0]);
+	buffer[1] := buffer[0] * buffer[1];
+	printi(buffer[1]);
 end

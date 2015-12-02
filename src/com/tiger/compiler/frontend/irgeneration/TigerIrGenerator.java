@@ -800,8 +800,14 @@ public class TigerIrGenerator
                         //look into the symbol table to find type info
                         //we can do this since idRegister is just the variable name
                         //for id's
-                        VariableSymbol variable = (VariableSymbol)globalSymbolTable.get(idRegister);
-                        String tempRegister = getTempRegisterPrefix(variable.getType()) + nextTempRegister++;
+                        String idStrippedSuffix = idRegister;
+                        if(idRegister.endsWith("_int"))
+                            idStrippedSuffix = idRegister.substring(0, idRegister.length() - 4);
+                        else if (idRegister.endsWith("_float"))
+                            idStrippedSuffix = idRegister.substring(0, idRegister.length() - 6);
+
+                        VariableSymbol variable = (VariableSymbol)globalSymbolTable.get(idStrippedSuffix);
+                        String tempRegister = getTempRegisterPrefix(variable.getType().baseType()) + nextTempRegister++;
 
                         code.add(instruction("array_load", tempRegister, idRegister, indexRegister));
                         myAttributes.put("register", tempRegister);

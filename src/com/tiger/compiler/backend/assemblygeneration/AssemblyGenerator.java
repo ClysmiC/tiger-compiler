@@ -325,10 +325,13 @@ public class AssemblyGenerator
                     }
                     else
                     {
-                        asm.add("li $at 4");
-                        asm.add("mul $at " + pieces[2]);
-                        asm.add("mflo $at");
-                        asm.add("sw " + pieces[3] + ", " + pieces[1] + "($at)");
+                        //need to multiply unknown register by 4, so just use a3 to hold the 4
+                        //since i don't use the argument registers anywhere else
+
+                        asm.add("li $a3, 4");
+                        asm.add("mult $a3, " + pieces[2]);
+                        asm.add("mflo $a3");
+                        asm.add("sw " + pieces[3] + ", " + pieces[1] + "($a3)");
                     }
                 } break;
 
@@ -343,10 +346,12 @@ public class AssemblyGenerator
                     }
                     else
                     {
-                        asm.add("li $at 4");
-                        asm.add("mul $at " + pieces[3]);
-                        asm.add("mflo $at");
-                        asm.add("lw " + pieces[1] + ", " + pieces[2] + "($at)");
+                        //need to multiply unknown register by 4, so just use a3 to hold the 4
+                        //since i don't use the argument registers anywhere else
+                        asm.add("li $a3, 4");
+                        asm.add("mult $a3, " + pieces[3]);
+                        asm.add("mflo $a3");
+                        asm.add("lw " + pieces[1] + ", " + pieces[2] + "($a3)");
                     }
 
                     boolean floatInRegister = isFloat(pieces[2]);
