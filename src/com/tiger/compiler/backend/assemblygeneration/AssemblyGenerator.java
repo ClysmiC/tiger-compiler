@@ -274,14 +274,21 @@ public class AssemblyGenerator
 //                        arg++;
 //                    }
 
+                    asm.add("addi $sp, $sp, -4");
+                    asm.add("sw $ra, 0($sp)");
                     asm.add("jal " + pieces[1]);
+                    asm.add("lw $ra, 0($sp)");
+                    asm.add("addi $sp, $sp, 4");
                 } break;
 
                 case "callr":
                 {
+                    asm.add("addi $sp, $sp, -4");
+                    asm.add("sw $ra, 0($sp)");
                     asm.add("jal " + pieces[2]);
-                    asm.add("sw $v0, " + pieces[1]); //NOTE: this works for naive, but
-                                                    // perhaps it should be putting $v0 directly into a register
+                    asm.add("sw $v0, " + pieces[1]);
+                    asm.add("lw $ra, 0($sp)");
+                    asm.add("addi $sp, $sp, 4");
                 } break;
 
                 case "return":

@@ -506,6 +506,8 @@ public class TigerIrGenerator
                 String breakLabel = (String)parentAttributes.get("breakLabel");
                 myAttributes.put("breakLabel", breakLabel);
 
+                myAttributes.put("functionBeingDeclared", parentAttributes.get("functionBeingDeclared"));
+
                 List<ParseTreeNode> children = node.getChildren();
 
 

@@ -803,6 +803,7 @@ public class TigerSemanticAnalyzer
                 Map<String, Object> parentAttributes = attributes.get(node.getParent());
                 Map<String, Symbol> functionSymbolTable = (Map<String, Symbol>) parentAttributes.get("functionSymbolTable");
                 myAttributes.put("functionSymbolTable", functionSymbolTable);
+                myAttributes.put("functionName", parentAttributes.get("functionName"));
 
                 List<ParseTreeNode> children = node.getChildren();
 
