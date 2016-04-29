@@ -6,8 +6,11 @@ CS 4240 compiler project
 The Tiger specification was initially given to us, and slightly changed throughout the course of the semester, so there isn't exactly one document that has the full specification. The Phase I document has the most thorough spec, but some of the details were changed in the Phase II, Typing Rules, and Phase III documents.
 
 [Phase I (Language Specification, Scanning and Parsing)](http://alsmith.net/pdf/tiger-phase-i)
+
 [Phase II (Symbol Table, Semantic Checking, IR Generation)](http://alsmith.net/pdf/tiger-phase-ii)
+
 [Typing Rules Clarification (Issued During Phase II)](http://alsmith.net/pdf/tiger-typing-rules)
+
 [Phase III (Assembly Generation, Register Allocation)](http://alsmith.net/pdf/tiger-phase-iii)
 
 For documentation about the compiler implementation, view the following documents in the repository:
